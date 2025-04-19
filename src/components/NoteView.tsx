@@ -94,26 +94,34 @@ export function NoteView({
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
       
-      if (crepeRef.current) {
-        // Setup editor change handling to capture raw markdown
-        crepeRef.current.action((ctx) => {
-          const editor = ctx.get('editor');
-          
-          if (editor) {
-            // Listen for document changes and update the raw markdown content
-            editor.on('update', () => {
-              // Get the markdown content directly from the editor
-              const markdown = editor.getText();
-              markdownContentRef.current = markdown;
-            });
+      if (crepeRef.current && crepeRef.current.editor) {
+        // Access the editor instance directly if available
+        const editor = crepeRef.current.editor;
+        
+        // Listen for document changes and update the raw markdown content
+        editor.on('change', () => {
+          // Get the raw markdown content
+          markdownContentRef.current = editor.getMarkdown();
+        });
+      } else {
+        // Fallback to using mutation observer if editor instance isn't directly accessible
+        const observer = new MutationObserver(() => {
+          if (crepeRef.current && crepeRef.current.getMarkdown) {
+            markdownContentRef.current = crepeRef.current.getMarkdown();
           }
         });
         
-        // Add blur event listener to save content when editor loses focus
-        element.addEventListener('blur', () => {
-          saveNoteContent();
+        observer.observe(element, {
+          childList: true,
+          subtree: true,
+          characterData: true
         });
       }
+      
+      // Add blur event listener to save content when editor loses focus
+      element.addEventListener('blur', () => {
+        saveNoteContent();
+      });
     });
 
     // Cleanup on unmount or when note changes
