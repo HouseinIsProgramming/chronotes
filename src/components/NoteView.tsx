@@ -154,6 +154,11 @@ export function NoteView({
 
   const handleReview = useCallback(async () => {
     if (note) {
+      // Update priority to null when reviewing
+      if (onUpdateNote) {
+        onUpdateNote(note.id, { priority: null });
+      }
+      
       onReview(note.id);
       
       // If authenticated, also update last_reviewed_at and reset priority in Supabase
@@ -181,7 +186,7 @@ export function NoteView({
         }
       }
     }
-  }, [note, onReview, mode, user]);
+  }, [note, onReview, onUpdateNote, mode, user]);
 
   const handleDelete = useCallback(() => {
     if (mode === 'guest') {
