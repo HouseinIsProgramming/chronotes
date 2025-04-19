@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,11 +14,6 @@ import { useNavigate } from "react-router-dom";
 interface SettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-// Define the interface for the RPC function parameters without being generic
-interface CreateDefaultDataParams {
-  user_id_param: string;
 }
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
@@ -57,16 +53,37 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       );
 
       if (foldersError) throw foldersError;
-
-      // Create default data using the existing database function
-      // Let TypeScript infer the return type and just pass the params directly
-      const { error: defaultDataError } = await withRetry(() => 
-        supabase.rpc('create_default_data_for_user', {
-          user_id_param: user.id
-        } as CreateDefaultDataParams) // Use type assertion here to ensure correct type matching
+      
+      // Create default folder
+      const { data: defaultFolder, error: defaultFolderError } = await withRetry(() => 
+        supabase
+          .from('folders')
+          .insert({ 
+            name: 'My Notes', 
+            user_id: user.id 
+          })
+          .select()
+          .single()
       );
-
-      if (defaultDataError) throw defaultDataError;
+      
+      if (defaultFolderError) throw defaultFolderError;
+      
+      // Create a welcome note in the default folder
+      if (defaultFolder) {
+        const { error: welcomeNoteError } = await withRetry(() => 
+          supabase
+            .from('notes')
+            .insert({ 
+              title: 'Welcome to NoteFlow', 
+              content: 'This is your first note. Start writing!',
+              tags: ['welcome'],
+              user_id: user.id,
+              folder_id: defaultFolder.id
+            })
+        );
+        
+        if (welcomeNoteError) throw welcomeNoteError;
+      }
 
       toast.success("All data has been reset to default state");
       onOpenChange(false); // Close the settings modal
@@ -126,7 +143,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   >
                     {isDeleting ? (
                       <>
-                        <Loader className="animate-spin" />
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
                         Deleting...
                       </>
                     ) : (
