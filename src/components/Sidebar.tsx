@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
@@ -57,7 +58,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       if (error) throw error;
       toast.success("Folder created successfully");
       setEditingFolderId(folder.id);
-      refreshFolders();
+      refreshFolders(); // Call the refresh function instead of navigating
     } catch (error) {
       console.error('Error creating folder:', error);
       toast.error("Failed to create folder");
@@ -85,7 +86,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
       if (error) throw error;
       toast.success("Note created successfully");
-      refreshFolders();
       
       if (note) {
         setExpandedFolders(prev => ({
@@ -93,6 +93,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
           [folderId]: true
         }));
         
+        // Refresh folders to get the updated list
+        refreshFolders();
+        
+        // After the refresh is complete, select the new note
         onNoteSelect(note.id);
       }
     } catch (error) {
@@ -112,7 +116,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       if (error) throw error;
       toast.success("Folder renamed successfully");
       setEditingFolderId(null);
-      refreshFolders();
+      refreshFolders(); // Call the refresh function instead of navigating
     } catch (error) {
       console.error('Error renaming folder:', error);
       toast.error("Failed to rename folder");
