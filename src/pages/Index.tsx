@@ -8,6 +8,7 @@ import { Folder, Note } from "@/types";
 import { addDays, subWeeks } from "date-fns";
 import { supabase, withRetry } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SearchCommand } from "@/components/SearchCommand";
 
 const sampleNotes: Note[] = [
   {
@@ -323,7 +324,13 @@ export default function Index() {
         refreshFolders={fetchUserData}
       />
       
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="border-b p-4 flex justify-end">
+          <SearchCommand 
+            notes={allNotes} 
+            onNoteSelect={handleNoteSelect}
+          />
+        </div>
         {viewMode === 'notes' ? (
           <NoteView 
             note={activeNote} 
