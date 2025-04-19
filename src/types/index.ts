@@ -1,4 +1,3 @@
-
 export interface Note {
   id: string;
   title: string;
@@ -7,6 +6,7 @@ export interface Note {
   created_at: string;
   last_reviewed_at: string;
   folder_id: string;
+  priority?: 'high' | 'medium' | 'low';  // Added optional priority
 }
 
 export interface Folder {

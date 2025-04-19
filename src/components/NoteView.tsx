@@ -5,7 +5,7 @@ import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Crepe } from "@milkdown/crepe";
-import { Save, Feather } from 'lucide-react';
+import { Save, Feather, Flag, FlagTriangleRight, FlagTriangleLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
@@ -96,25 +96,62 @@ export function NoteView({
     }
   }, [note, onUpdateNote, mode, user]);
 
+  const handlePriorityUpdate = useCallback(async (priority: 'high' | 'medium' | 'low') => {
+    if (note && onUpdateNote) {
+      try {
+        // Update note in local state
+        onUpdateNote(note.id, { priority });
+        
+        // If authenticated, also save to Supabase
+        if (mode === 'authenticated' && user) {
+          const { error } = await supabase
+            .from('notes')
+            .update({ priority })
+            .eq('id', note.id)
+            .eq('user_id', user.id);
+            
+          if (error) {
+            console.error("Error updating note priority:", error);
+            toast.error("Failed to update note priority");
+          } else {
+            toast.success(`Note marked as ${priority} priority`);
+          }
+        } else {
+          toast.success(`Note marked as ${priority} priority`);
+        }
+      } catch (error) {
+        console.error("Exception when updating note priority:", error);
+        toast.error("Failed to update note priority");
+      }
+    }
+  }, [note, onUpdateNote, mode, user]);
+
   const handleReview = useCallback(async () => {
     if (note) {
       onReview(note.id);
       
-      // If authenticated, also update last_reviewed_at in Supabase
+      // If authenticated, also update last_reviewed_at and reset priority in Supabase
       if (mode === 'authenticated' && user) {
         try {
           const now = new Date().toISOString();
           const { error } = await supabase
             .from('notes')
-            .update({ last_reviewed_at: now })
+            .update({ 
+              last_reviewed_at: now,
+              priority: null  // Reset priority when reviewed
+            })
             .eq('id', note.id)
             .eq('user_id', user.id);
             
           if (error) {
             console.error("Error updating review time in Supabase:", error);
+            toast.error("Failed to mark note as reviewed");
+          } else {
+            toast.success("Note marked as reviewed");
           }
         } catch (error) {
           console.error("Exception when updating review time:", error);
+          toast.error("Failed to mark note as reviewed");
         }
       }
     }
@@ -275,6 +312,33 @@ export function NoteView({
           >
             <Feather className="h-4 w-4" />
             Mark as Reviewed
+          </Button>
+          <Button 
+            variant={note.priority === 'high' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handlePriorityUpdate('high')}
+            className="gap-2"
+          >
+            <Flag className="h-4 w-4" />
+            High Priority
+          </Button>
+          <Button 
+            variant={note.priority === 'medium' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handlePriorityUpdate('medium')}
+            className="gap-2"
+          >
+            <FlagTriangleRight className="h-4 w-4" />
+            Medium Priority
+          </Button>
+          <Button 
+            variant={note.priority === 'low' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handlePriorityUpdate('low')}
+            className="gap-2"
+          >
+            <FlagTriangleLeft className="h-4 w-4" />
+            Low Priority
           </Button>
         </div>
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">

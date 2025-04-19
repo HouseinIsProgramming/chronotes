@@ -1,3 +1,4 @@
+
 import { differenceInWeeks } from "date-fns";
 import { KanbanColumn, Note, ReviewPriority } from "@/types";
 import { NoteCard } from "@/components/NoteCard";
@@ -18,12 +19,23 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
   const categorizeNotes = (notes: Note[]): KanbanColumn[] => {
     const columns: KanbanColumn[] = [
       { title: "Urgent", priority: "urgent", notes: [] },
+      { title: "High Priority", priority: "high", notes: [] },
       { title: "Medium Priority", priority: "medium", notes: [] },
       { title: "Low Priority", priority: "low", notes: [] },
       { title: "Reviewed", priority: "reviewed", notes: [] },
     ];
 
     notes.forEach(note => {
+      // If note has a priority, put it in the corresponding column
+      if (note.priority) {
+        const priorityColumn = columns.find(col => col.priority === note.priority);
+        if (priorityColumn) {
+          priorityColumn.notes.push(note);
+          return;
+        }
+      }
+
+      // If no priority, fall back to time-based categorization
       const lastReviewedDate = note.last_reviewed_at 
         ? new Date(note.last_reviewed_at) 
         : new Date(0); // If never reviewed, use epoch time
@@ -33,11 +45,11 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
       if (weeksAgo >= 3) {
         columns[0].notes.push(note); // Urgent
       } else if (weeksAgo >= 2) {
-        columns[1].notes.push(note); // Medium
+        columns[2].notes.push(note); // Medium
       } else if (weeksAgo >= 1) {
-        columns[2].notes.push(note); // Low
+        columns[3].notes.push(note); // Low
       } else {
-        columns[3].notes.push(note); // Reviewed
+        columns[4].notes.push(note); // Reviewed
       }
     });
 

@@ -37,6 +37,7 @@ export type Database = {
           folder_id: string
           id: string
           last_reviewed_at: string
+          priority: string | null
           tags: string[]
           title: string
           user_id: string
@@ -47,6 +48,7 @@ export type Database = {
           folder_id: string
           id?: string
           last_reviewed_at?: string
+          priority?: string | null
           tags?: string[]
           title: string
           user_id: string
@@ -57,6 +59,7 @@ export type Database = {
           folder_id?: string
           id?: string
           last_reviewed_at?: string
+          priority?: string | null
           tags?: string[]
           title?: string
           user_id?: string
