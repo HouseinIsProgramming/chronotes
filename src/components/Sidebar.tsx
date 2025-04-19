@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, Flash } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, Zap } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -78,7 +77,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
               viewMode === 'flashcards' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
             onClick={() => onViewModeChange('flashcards')}
           >
-            <Flash className="mr-2 h-4 w-4" />
+            <Zap className="mr-2 h-4 w-4" />
             FlashCards
           </Button>
         </div>
