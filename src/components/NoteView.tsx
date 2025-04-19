@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -172,12 +173,20 @@ export function NoteView({
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      custom: {
-        slash: {
-          'flashcard': {
-            icon: '🧠',
+    });
+
+    crepeRef.current.create().then(() => {
+      console.log("Editor created for note:", note.id);
+      currentContentRef.current = note.content || '';
+      
+      if (crepeRef.current) {
+        // Add flashcard slash command after editor is created
+        try {
+          crepeRef.current.editor.slashMenu.addItem({
+            id: 'flashcard',
+            content: '🧠 Flashcard',
             description: 'Insert a flashcard block',
-            action: (editor) => {
+            handler: () => {
               const flashcardTemplate = [
                 '```flashcard',
                 '## title',
@@ -189,19 +198,13 @@ export function NoteView({
                 '```flashcardend'
               ].join('\n');
               
-              editor.insertText(flashcardTemplate);
-              return true;
+              crepeRef.current?.editor.insertText(flashcardTemplate);
             }
-          }
+          });
+        } catch (error) {
+          console.error("Error adding slash command:", error);
         }
-      }
-    });
-
-    crepeRef.current.create().then(() => {
-      console.log("Editor created for note:", note.id);
-      currentContentRef.current = note.content || '';
-      
-      if (crepeRef.current) {
+        
         const editorContainer = element;
         const observer = new MutationObserver(() => {
           if (crepeRef.current) {
