@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +9,6 @@ import { addDays, subWeeks } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Mock data for demo purposes (used for guest mode and initial state)
 const sampleNotes: Note[] = [
   {
     id: "1",
@@ -85,17 +83,15 @@ export default function Index() {
   const [folders, setFolders] = useState<Folder[]>(sampleFolders);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
-  const [viewMode, setViewMode] = useState<'notes' | 'review'>('notes');
+  const [viewMode, setViewMode] = useState<'notes' | 'review' | 'flashcards'>('notes');
   const [isLoading, setIsLoading] = useState(false);
   const allNotes = folders.flatMap(folder => folder.notes);
 
-  // Fetch user's folders and notes from Supabase when authenticated
   useEffect(() => {
     const fetchUserData = async () => {
       if (mode === 'authenticated' && user) {
         setIsLoading(true);
         try {
-          // Fetch folders
           const { data: folderData, error: folderError } = await supabase
             .from('folders')
             .select('*')
@@ -110,12 +106,10 @@ export default function Index() {
           }
 
           if (!folderData || folderData.length === 0) {
-            // If no folders found, create default folders for the user
             await createDefaultFolders(user.id);
-            return; // This will trigger a re-render and call fetchUserData again
+            return;
           }
 
-          // Fetch notes
           const { data: noteData, error: noteError } = await supabase
             .from('notes')
             .select('*')
@@ -129,7 +123,6 @@ export default function Index() {
             return;
           }
 
-          // Organize data into folder structure
           const userFolders: Folder[] = folderData.map(folder => ({
             id: folder.id,
             name: folder.name,
@@ -138,8 +131,6 @@ export default function Index() {
 
           if (userFolders.length > 0) {
             setFolders(userFolders);
-            
-            // Set first note as active if no note is selected
             if (!activeNoteId && userFolders[0].notes.length > 0) {
               setActiveNoteId(userFolders[0].notes[0].id);
             }
@@ -151,14 +142,12 @@ export default function Index() {
           setIsLoading(false);
         }
       } else if (mode === 'guest') {
-        // Use sample data for guest mode
         setFolders(sampleFolders);
       }
     };
 
     const createDefaultFolders = async (userId: string) => {
       try {
-        // Create default folders
         const folderPromises = sampleFolders.map(folder => 
           supabase
             .from('folders')
@@ -172,7 +161,6 @@ export default function Index() {
         const folderResults = await Promise.all(folderPromises);
         const newFolders = folderResults.map(result => result.data?.[0]).filter(Boolean);
         
-        // Create sample notes in each folder
         for (const folder of newFolders) {
           const sampleFolderNotes = sampleNotes.filter(
             note => note.folder_id === sampleFolders.find(f => f.name === folder.name)?.id
@@ -194,8 +182,6 @@ export default function Index() {
         }
         
         toast("Created default folders and notes");
-        
-        // Fetch the data again to get the complete structure
         fetchUserData();
       } catch (error) {
         console.error("Error creating default data:", error);
@@ -206,7 +192,6 @@ export default function Index() {
     fetchUserData();
   }, [mode, user]);
 
-  // Set the first note as active by default
   useEffect(() => {
     if (allNotes.length > 0 && !activeNoteId) {
       const firstNoteId = allNotes[0].id;
@@ -215,7 +200,6 @@ export default function Index() {
     }
   }, [allNotes, activeNoteId]);
 
-  // Update active note when ID changes
   useEffect(() => {
     if (activeNoteId) {
       setActiveNote(allNotes.find(note => note.id === activeNoteId) || null);
@@ -231,7 +215,6 @@ export default function Index() {
   const handleReview = async (noteId: string) => {
     const now = new Date().toISOString();
     
-    // Update local state
     const updatedFolders = folders.map(folder => ({
       ...folder,
       notes: folder.notes.map(note => 
@@ -243,8 +226,6 @@ export default function Index() {
     
     setFolders(updatedFolders);
     
-    // If authenticated, sync to Supabase
-    // Note: We're also handling this in NoteView for redundancy
     if (mode === 'authenticated' && user) {
       try {
         const { error } = await supabase
@@ -264,7 +245,6 @@ export default function Index() {
   };
 
   const handleNoteUpdate = async (noteId: string, updates: Partial<Note>) => {
-    // Update local state
     const updatedFolders = folders.map(folder => ({
       ...folder,
       notes: folder.notes.map(note => 
@@ -275,8 +255,6 @@ export default function Index() {
     }));
     
     setFolders(updatedFolders);
-    
-    // Supabase sync is now handled in the NoteView component
   };
 
   if (isLoading) {
@@ -306,13 +284,18 @@ export default function Index() {
             onReview={handleReview}
             onUpdateNote={handleNoteUpdate}
           />
-        ) : (
+        ) : viewMode === 'review' ? (
           <KanbanBoard 
             notes={allNotes} 
             onNoteSelect={handleNoteSelect}
             onReview={handleReview}
             onViewModeChange={setViewMode}
           />
+        ) : (
+          <div className="p-4">
+            <h2 className="text-2xl font-bold mb-4">FlashCards</h2>
+            <p className="text-muted-foreground">FlashCards view coming soon...</p>
+          </div>
         )}
       </div>
     </div>
