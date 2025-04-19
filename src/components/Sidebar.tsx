@@ -4,6 +4,9 @@ import { ChevronDown, ChevronRight, Folder, FileText } from 'lucide-react';
 import { Folder as FolderType, Note } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   folders: FolderType[];
@@ -15,12 +18,36 @@ interface SidebarProps {
 
 export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewModeChange }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+  const { user } = useAuth();
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({
       ...prev,
       [folderId]: !prev[folderId]
     }));
+  };
+
+  // Helper function to get user initials
+  const getUserInitials = () => {
+    if (!user) return '?';
+    const email = user.email || '';
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  // Helper function to get avatar URL from provider data
+  const getAvatarUrl = () => {
+    if (!user) return null;
+    // Try to get avatar from GitHub
+    const githubProvider = user.identities?.find(identity => identity.provider === 'github');
+    if (githubProvider?.identity_data?.avatar_url) {
+      return githubProvider.identity_data.avatar_url;
+    }
+    // Try to get avatar from Google
+    const googleProvider = user.identities?.find(identity => identity.provider === 'google');
+    if (googleProvider?.identity_data?.picture) {
+      return googleProvider.identity_data.picture;
+    }
+    return null;
   };
 
   return (
@@ -85,6 +112,21 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
           ))}
         </div>
       )}
+
+      {/* User Profile Section */}
+      <div className="mt-auto p-2">
+        <Separator className="mb-2" />
+        <div className="flex items-center gap-3 px-2 py-2">
+          <Avatar>
+            <AvatarImage src={getAvatarUrl() || ''} />
+            <AvatarFallback>{getUserInitials()}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-sm text-muted-foreground">Logged in as</span>
+            <span className="text-sm font-medium truncate">{user?.email}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
