@@ -84,11 +84,12 @@ export function NoteView({
     
     const element = editorRef.current;
     
-    // Create new editor instance
+    // Create new editor instance - removed the invalid 'editable' property
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      editable: true,
+      // The 'editable' property is not part of CrepeConfig type, so we've removed it
+      // Crepe editor is editable by default
     });
 
     // Create and setup the editor
