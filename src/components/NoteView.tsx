@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -47,16 +46,26 @@ export function NoteView({
 
   const saveNoteContent = useCallback(() => {
     console.log("Attempting to save content...");
-    console.log("Current note content:", note?.content?.substring(0, 50) + "...");
-    console.log("Editor content to save:", currentContentRef.current.substring(0, 50) + "...");
     
-    if (note && onUpdateNote) {
-      // Use the content from the ref for saving
-      onUpdateNote(note.id, { content: currentContentRef.current });
-      toast("Note saved");
-      console.log("Save operation completed");
+    if (note && onUpdateNote && crepeRef.current) {
+      // Get markdown directly from Crepe
+      try {
+        // Use the markdown getter from Crepe
+        const markdown = crepeRef.current.getMarkdown();
+        console.log("Markdown content to save:", markdown?.substring(0, 50) + "...");
+        
+        // Save the markdown content
+        onUpdateNote(note.id, { content: markdown || note.content });
+        toast("Note saved");
+        console.log("Save operation completed");
+      } catch (error) {
+        console.error("Error getting markdown from editor:", error);
+        // Fallback to current content ref if direct method fails
+        onUpdateNote(note.id, { content: currentContentRef.current });
+        toast("Note saved (fallback method)");
+      }
     } else {
-      console.log("Save failed - note or onUpdateNote is null");
+      console.log("Save failed - note, onUpdateNote, or crepeRef is null");
     }
   }, [note, onUpdateNote]);
 
@@ -89,65 +98,21 @@ export function NoteView({
     
     const element = editorRef.current;
     
+    // Create the Crepe editor with change tracking
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
+      onChange: (markdown) => {
+        // This is called whenever the markdown content changes
+        console.log("Editor content changed:", markdown?.substring(0, 50) + "...");
+        currentContentRef.current = markdown || '';
+      }
     });
 
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
-      
-      // Initial content
+      // Set initial content
       currentContentRef.current = note.content || '';
-      
-      // MutationObserver to detect changes to the DOM
-      const observer = new MutationObserver(() => {
-        try {
-          if (crepeRef.current && element) {
-            // When the editor content changes, we need to update our content ref
-            // We're using the node's innerHTML as a proxy for the actual markdown content
-            // This isn't ideal, but it works as a fallback when direct API methods aren't available
-            const rawHTML = element.innerHTML;
-            
-            // Store the raw editor content - we use the original note content as a placeholder
-            // In a real app, you'd need to convert the HTML back to markdown here
-            // For this demo, we'll extract text content as a rough approximation
-            currentContentRef.current = element.textContent || note.content || '';
-            
-            console.log("Content changed (mutation):", currentContentRef.current.substring(0, 50) + "...");
-          }
-        } catch (error) {
-          console.error('Error tracking content changes:', error);
-        }
-      });
-      
-      observer.observe(element, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
-      
-      // Additional event listeners to capture various edit scenarios
-      element.addEventListener('input', () => {
-        if (element) {
-          currentContentRef.current = element.textContent || note.content || '';
-          console.log("Input event detected - content updated:", currentContentRef.current.substring(0, 50) + "...");
-        }
-      });
-      
-      element.addEventListener('blur', () => {
-        if (element) {
-          currentContentRef.current = element.textContent || note.content || '';
-          console.log("Blur event - content captured:", currentContentRef.current.substring(0, 50) + "...");
-        }
-      });
-      
-      element.addEventListener('keyup', () => {
-        if (element) {
-          currentContentRef.current = element.textContent || note.content || '';
-          console.log("Keyup event - content updated:", currentContentRef.current.substring(0, 50) + "...");
-        }
-      });
     });
 
     return cleanupEditor;
