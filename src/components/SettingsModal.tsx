@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -60,8 +61,10 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       onOpenChange(false); // Close the settings modal
     } catch (error) {
       console.error("Error resetting data:", error);
-      toast.error("Failed to reset data", {
-        description: error instanceof Error ? error.message : "An unknown error occurred"
+      toast({
+        title: "Failed to reset data",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
       });
     }
   };
