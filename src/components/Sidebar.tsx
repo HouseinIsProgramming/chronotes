@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -30,8 +29,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   const { user, mode, signOut } = useAuth();
   const navigate = useNavigate();
   
-  // Store the hover timer ref rather than the timer directly
-  const folderRenameTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const folderRenameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({
@@ -41,7 +39,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   };
 
   const handleCreateFolder = async (e: React.MouseEvent) => {
-    // Prevent any default navigation
     e.preventDefault();
     e.stopPropagation();
     
@@ -72,7 +69,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   };
 
   const handleCreateNote = async (e: React.MouseEvent, folderId: string) => {
-    // Prevent any default navigation
     e.preventDefault();
     e.stopPropagation();
     
@@ -103,13 +99,11 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
           [folderId]: true
         }));
         
-        // First refresh the folders to get the updated data
         refreshFolders();
         
-        // Then select the new note
         setTimeout(() => {
           onNoteSelect(note.id);
-        }, 100); // Small delay to ensure the refresh is processed
+        }, 100);
       }
     } catch (error) {
       console.error('Error creating note:', error);
@@ -145,7 +139,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
     navigate('/auth');
   };
 
-  // Clean up any timers when the component unmounts
   useEffect(() => {
     return () => {
       if (folderRenameTimerRef.current) {
@@ -216,12 +209,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                 className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer group relative"
                 onClick={() => toggleFolder(folder.id)}
                 onMouseEnter={() => {
-                  // Clear any existing timer first
                   if (folderRenameTimerRef.current) {
                     clearTimeout(folderRenameTimerRef.current);
                   }
                   
-                  // Set up a new timer
                   folderRenameTimerRef.current = setTimeout(() => {
                     if (editingFolderId !== folder.id) {
                       const renameButton = document.querySelector(`[data-folder-id="${folder.id}"] .rename-button`) as HTMLElement;
@@ -232,7 +223,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                   }, 500);
                 }}
                 onMouseLeave={() => {
-                  // Clear the timer
                   if (folderRenameTimerRef.current) {
                     clearTimeout(folderRenameTimerRef.current);
                     folderRenameTimerRef.current = null;
