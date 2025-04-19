@@ -17,8 +17,22 @@ export function EditableContent({ value, onSave, className, multiline = false }:
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
+      
+      // For textareas, adjust height to fit content
+      if (multiline && inputRef.current instanceof HTMLTextAreaElement) {
+        inputRef.current.style.height = 'auto';
+        inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
+      }
     }
-  }, [isEditing]);
+  }, [isEditing, multiline]);
+
+  // Update height on content change
+  useEffect(() => {
+    if (isEditing && multiline && inputRef.current instanceof HTMLTextAreaElement) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
+    }
+  }, [editValue, isEditing, multiline]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && !multiline) {
@@ -48,9 +62,10 @@ export function EditableContent({ value, onSave, className, multiline = false }:
         onKeyDown={handleKeyDown}
         className={cn(
           "w-full bg-background border rounded-md p-2",
-          multiline && "min-h-[100px]",
+          multiline && "resize-none overflow-hidden min-h-[100px]",
           className
         )}
+        style={multiline ? { height: 'auto' } : {}}
       />
     );
   }
@@ -58,7 +73,7 @@ export function EditableContent({ value, onSave, className, multiline = false }:
   return (
     <div
       onClick={() => setIsEditing(true)}
-      className={cn("cursor-text", className)}
+      className={cn("cursor-text", multiline && "whitespace-pre-wrap", className)}
     >
       {value}
     </div>

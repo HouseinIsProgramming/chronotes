@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface NoteViewProps {
   note: Note | null;
@@ -81,22 +83,26 @@ export function NoteView({ note, onReview, onUpdateNote }: NoteViewProps) {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        {showMarkdown ? (
-          <div className="prose prose-sm md:prose-base max-w-none">
-            <ReactMarkdown>{note.content}</ReactMarkdown>
-          </div>
-        ) : (
-          <EditableContent
-            value={note.content}
-            onSave={(value) => handleUpdate('content', value)}
-            multiline
-            className={cn(
-              "font-mono text-sm w-full h-full whitespace-pre-wrap break-words",
-              "border rounded-md p-2 bg-background"
+      <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+        <Card className="h-auto bg-[#F1F0FB] shadow-sm">
+          <CardContent className="p-6">
+            {showMarkdown ? (
+              <div className="prose prose-sm md:prose-base max-w-none">
+                <ReactMarkdown>{note.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <EditableContent
+                value={note.content}
+                onSave={(value) => handleUpdate('content', value)}
+                multiline
+                className={cn(
+                  "font-mono text-sm w-full whitespace-pre-wrap break-words min-h-[200px]",
+                  "h-auto"
+                )}
+              />
             )}
-          />
-        )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
