@@ -1,5 +1,6 @@
-
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Sidebar } from "@/components/Sidebar";
 import { NoteView } from "@/components/NoteView";
 import { KanbanBoard } from "@/components/KanbanBoard";
@@ -69,6 +70,15 @@ const sampleFolders: Folder[] = [
 ];
 
 export default function Index() {
+  const { mode } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!mode) {
+      navigate('/auth');
+    }
+  }, [mode, navigate]);
+
   const [folders, setFolders] = useState<Folder[]>(sampleFolders);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
