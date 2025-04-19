@@ -1,6 +1,6 @@
 
-import { FlashCard } from "@/types";
 import { v4 as uuidv4 } from "uuid";
+import { FlashCard } from "@/types";
 
 // Parse flash cards from note content
 export const parseFlashCards = (content: string | undefined, noteId: string): FlashCard[] => {
@@ -25,7 +25,6 @@ export const parseFlashCards = (content: string | undefined, noteId: string): Fl
   }
   
   // Parse new flashcard format with ??? markers
-  // Fix the regex pattern to properly handle the ??? delimiters
   const newFormatRegex = /\?\?\?([\s\S]*?)---([\s\S]*?)\?\?\?/g;
   let newMatch;
   
