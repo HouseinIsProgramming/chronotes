@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,16 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FolderItemProps {
   folder: {
@@ -47,6 +58,15 @@ export function FolderItem({
 }: FolderItemProps) {
   const { mode } = useAuth();
   const folderRenameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteClick = () => {
+    if (mode === 'guest') {
+      toast.error("Please log in to delete folders");
+      return;
+    }
+    setShowDeleteDialog(true);
+  };
 
   return (
     <div key={folder.id} className="mb-1">
@@ -125,19 +145,37 @@ export function FolderItem({
         <ContextMenuContent>
           <ContextMenuItem 
             className="text-destructive focus:text-destructive"
-            onClick={() => {
-              if (mode === 'guest') {
-                toast.error("Please log in to delete folders");
-                return;
-              }
-              onDelete(folder.id);
-            }}
+            onClick={handleDeleteClick}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete Folder
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the folder "{folder.name}" and all its notes.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                onDelete(folder.id);
+                setShowDeleteDialog(false);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {expanded && (
         <div className="ml-6 mt-1 space-y-1">
