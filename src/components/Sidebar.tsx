@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
@@ -68,8 +69,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       }
       
       toast.success("Folder created successfully");
-      setEditingFolderId(folder.id);
-      refreshFolders(); 
+      if (folder) {
+        setEditingFolderId(folder.id);
+        refreshFolders(); 
+      }
     } catch (error) {
       console.error('Error creating folder:', error);
       toast.error("Failed to create folder");

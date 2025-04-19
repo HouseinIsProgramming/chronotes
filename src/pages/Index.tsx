@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -134,8 +135,8 @@ export default function Index() {
         const userFolders: Folder[] = folderData.map(folder => ({
           id: folder.id,
           name: folder.name,
-          notes: noteData
-            ?.filter(note => note.folder_id === folder.id)
+          notes: (noteData || [])
+            .filter(note => note.folder_id === folder.id)
             .map(note => ({
               ...note,
               priority: note.priority as 'high' | 'medium' | 'low' | undefined
@@ -186,7 +187,9 @@ export default function Index() {
       );
       
       const folderResults = await Promise.all(folderPromises);
-      const newFolders = folderResults.map(result => result.data?.[0]).filter(Boolean);
+      const newFolders = folderResults
+        .map(result => result.data && result.data[0])
+        .filter(Boolean);
       
       // Create sample notes in each folder
       for (const folder of newFolders) {
