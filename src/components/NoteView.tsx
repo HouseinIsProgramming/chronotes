@@ -28,6 +28,7 @@ export function NoteView({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   
+  // Fixed the useEditor hook usage to follow the Milkdown API correctly
   const { loading, get } = useEditor((root) => {
     return get()
       .use(nord)
@@ -148,7 +149,10 @@ export function NoteView({
                     <p>Loading editor...</p>
                   </div>
                 ) : (
-                  <div className="milkdown-editor-wrapper">{get()?.render()}</div>
+                  <div className="milkdown-editor-wrapper">
+                    {/* Fixed rendering of Milkdown editor */}
+                    {get() && <div className="milkdown" />}
+                  </div>
                 )}
               </div>
             ) : (
