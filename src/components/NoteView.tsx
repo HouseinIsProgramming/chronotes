@@ -20,6 +20,31 @@ interface NoteViewProps {
   onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
 }
 
+// Custom CSS for flashcards
+const flashcardStyles = `
+.flashcard-container {
+  background-color: #FEF7CD;
+  border: 1px solid #8E9196;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.flashcard-question {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.flashcard-separator {
+  border-top: 1px dashed #8E9196;
+  margin: 8px 0;
+}
+
+.flashcard-answer {
+  margin-top: 8px;
+}
+`;
+
 export function NoteView({
   note,
   onReview,
@@ -31,6 +56,17 @@ export function NoteView({
   const [editorContent, setEditorContent] = useState<string>('');
   const currentContentRef = useRef<string>(''); // Use a ref to track the current content
   const { mode, user } = useAuth();
+  
+  // Add style element for flashcard CSS
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = flashcardStyles;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
   
   useEffect(() => {
     if (note && note.last_reviewed_at) {
@@ -127,13 +163,50 @@ export function NoteView({
     
     const element = editorRef.current;
     
-    // Create the Crepe editor without the onChange property
+    // Create the Crepe editor with custom configuration
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
+      slashCommands: [
+        // Default built-in commands will be added automatically
+        // Add our custom flashcard command
+        {
+          id: 'flashcard',
+          placeholder: 'Create a flashcard',
+          keywords: ['flash', 'card', 'flashcard'],
+          renderer: () => 'Add Flashcard',
+          execute: (editor) => {
+            const flashcardTemplate = '???\nQuestion\n---\nAnswer\n???';
+            editor.insertText(flashcardTemplate);
+            
+            // Position cursor after "Question" line
+            const currentPos = editor.getState().selection.anchor;
+            const questionLinePos = currentPos - flashcardTemplate.length + 10;
+            editor.setTextSelection({
+              from: questionLinePos,
+              to: questionLinePos,
+            });
+            
+            return true;
+          },
+        },
+      ],
+      // Set up custom rendering for flashcards
+      remarkPlugins: [
+        // Custom remark plugin to handle flashcards
+        () => (tree) => {
+          // This is a very simple implementation
+          // In a real-world scenario, you'd want to use a more robust approach
+          // to transform the AST and handle flashcard blocks
+          
+          // We'll use the client-side DOM manipulation instead for simplicity
+          // The actual rendering is handled by the MutationObserver below
+          return tree;
+        }
+      ],
     });
 
-    // Set up the change tracking after the editor is created
+    // Initialize the editor
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
       // Set initial content
@@ -150,6 +223,11 @@ export function NoteView({
                 currentContentRef.current = markdown;
                 console.log("Editor content changed:", markdown.substring(0, 50) + "...");
               }
+              
+              // Process flashcard blocks
+              setTimeout(() => {
+                processFlashcardBlocks(editorContainer);
+              }, 100);
             } catch (error) {
               console.error("Error getting markdown during mutation:", error);
             }
@@ -163,6 +241,11 @@ export function NoteView({
           characterData: true
         });
         
+        // Process flashcard blocks on initial load
+        setTimeout(() => {
+          processFlashcardBlocks(editorContainer);
+        }, 300);
+        
         // Add cleanup for the observer
         return () => {
           observer.disconnect();
@@ -172,6 +255,56 @@ export function NoteView({
 
     return cleanupEditor;
   }, [note?.id, cleanupEditor]);
+
+  // Process flashcard blocks in the editor
+  const processFlashcardBlocks = (container: HTMLDivElement) => {
+    // Find all code blocks
+    const codeBlocks = container.querySelectorAll('pre code');
+    
+    codeBlocks.forEach(codeBlock => {
+      // Check if the code block contains flashcard content
+      const content = codeBlock.textContent || '';
+      if (content.startsWith('???') && content.endsWith('???') && content.includes('---')) {
+        // This is a flashcard block
+        const preElement = codeBlock.parentElement;
+        if (!preElement) return;
+        
+        // Check if this block has already been processed
+        if (preElement.classList.contains('flashcard-processed')) return;
+        
+        // Mark as processed
+        preElement.classList.add('flashcard-processed');
+        
+        // Extract question and answer
+        const cleanContent = content.replace(/^???|???$/g, '').trim();
+        const [question, answer] = cleanContent.split('---').map(part => part.trim());
+        
+        // Create flashcard container
+        const flashcardContainer = document.createElement('div');
+        flashcardContainer.className = 'flashcard-container';
+        
+        // Add question
+        const questionElem = document.createElement('div');
+        questionElem.className = 'flashcard-question';
+        questionElem.textContent = question;
+        flashcardContainer.appendChild(questionElem);
+        
+        // Add separator
+        const separator = document.createElement('div');
+        separator.className = 'flashcard-separator';
+        flashcardContainer.appendChild(separator);
+        
+        // Add answer
+        const answerElem = document.createElement('div');
+        answerElem.className = 'flashcard-answer';
+        answerElem.textContent = answer;
+        flashcardContainer.appendChild(answerElem);
+        
+        // Replace the code block with our flashcard
+        preElement.parentElement?.replaceChild(flashcardContainer, preElement);
+      }
+    });
+  };
 
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -282,4 +415,3 @@ export function NoteView({
       </div>
     </div>;
 }
-
