@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -6,10 +5,9 @@ import { Switch } from '@/components/ui/switch';
 import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { Card, CardContent } from '@/components/ui/card';
-import { useEditor } from '@milkdown/react';
-import { defaultValueCtx, rootCtx } from '@milkdown/core';
-import { commonmark } from '@milkdown/preset-commonmark';
-import { nord } from '@milkdown/theme-nord';
+import { Crepe } from "@milkdown/crepe";
+import "@milkdown/crepe/theme/common/style.css";
+import "@milkdown/crepe/theme/frame.css";
 
 interface NoteViewProps {
   note: Note | null;
@@ -27,17 +25,37 @@ export function NoteView({
   const [localContent, setLocalContent] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
-  
-  // Fixed Milkdown configuration with proper return types
-  const { loading, get } = useEditor((root) => {
-    return get()
-      .use(nord)
-      .use(commonmark)
-      .config((ctx) => {
-        ctx.set(rootCtx, root);
-        ctx.set(defaultValueCtx, note?.content || '');
+  const crepeRef = useRef<Crepe | null>(null);
+
+  useEffect(() => {
+    if (note && showMarkdown && editorRef.current) {
+      crepeRef.current = new Crepe({
+        root: editorRef.current,
+        defaultValue: note.content || '',
       });
-  }, [note?.id, note?.content]);
+
+      crepeRef.current.create().then(() => {
+        console.log("Editor created");
+        
+        // Add content change listener if editor is available
+        if (crepeRef.current) {
+          crepeRef.current.onChange((markdown) => {
+            if (onUpdateNote && note) {
+              handleContentChange(markdown);
+            }
+          });
+        }
+      });
+
+      // Cleanup function
+      return () => {
+        if (crepeRef.current) {
+          crepeRef.current.destroy();
+          crepeRef.current = null;
+        }
+      };
+    }
+  }, [note?.id, showMarkdown]);
 
   useEffect(() => {
     // Update local content when note changes
@@ -65,33 +83,6 @@ export function NoteView({
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
   }, [localContent]);
-
-  // Listen for editor content changes
-  useEffect(() => {
-    if (!loading && get && note) {
-      const editor = get();
-      if (editor) {
-        // We would set up content change listeners here
-        // This is a simplified example - in a real app you'd implement
-        // proper markdown serialization and change detection
-        
-        // Listen for document changes using Milkdown's API
-        setTimeout(() => {
-          const editorRoot = editorRef.current?.querySelector('.milkdown');
-          if (editorRoot) {
-            editorRoot.addEventListener('input', () => {
-              // This is a simple approach - in a real app you'd use Milkdown's API
-              // to properly extract the document content
-              const content = editorRoot.textContent || '';
-              if (content !== note.content) {
-                handleContentChange(content);
-              }
-            });
-          }
-        }, 100);
-      }
-    }
-  }, [loading, note]);
 
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
