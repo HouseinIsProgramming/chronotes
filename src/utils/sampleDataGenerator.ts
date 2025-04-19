@@ -2,87 +2,55 @@
 import { supabase, withRetry } from "@/integrations/supabase/client";
 import { Folder } from "@/types";
 import { toast } from "sonner";
+import { sampleFolders, sampleNotes } from "@/sampleData/notes";
 
 export async function generateSampleData(userId: string) {
   try {
-    // Create Web Development folder
-    const { data: webDevFolder, error: webDevError } = await withRetry(() => 
-      supabase
-        .from('folders')
-        .insert({ 
-          name: 'Web Development', 
-          user_id: userId 
-        })
-        .select()
-        .single()
-    );
+    // Create each folder and store their IDs
+    const folderIds = new Map<string, string>();
     
-    if (webDevError) throw webDevError;
-
-    // Create React Essentials folder
-    const { data: reactFolder, error: reactError } = await withRetry(() => 
-      supabase
-        .from('folders')
-        .insert({ 
-          name: 'React Essentials', 
-          user_id: userId 
-        })
-        .select()
-        .single()
-    );
-    
-    if (reactError) throw reactError;
-
-    // Add sample notes to Web Development folder
-    if (webDevFolder) {
-      const { error: webNotesError } = await withRetry(() => 
+    for (const folder of sampleFolders) {
+      const { data: newFolder, error: folderError } = await withRetry(() => 
         supabase
-          .from('notes')
-          .insert([
-            { 
-              title: 'JavaScript Best Practices', 
-              content: '# JavaScript Best Practices\n\n1. Use const and let\n2. Write clean functions\n3. Handle errors properly',
-              tags: ['javascript', 'programming', 'best-practices'],
-              user_id: userId,
-              folder_id: (webDevFolder as Folder).id
-            },
-            { 
-              title: 'CSS Grid Layout Guide', 
-              content: '# CSS Grid Layout\n\nCSS Grid is a powerful tool for creating two-dimensional layouts.',
-              tags: ['css', 'web-development', 'layout'],
-              user_id: userId,
-              folder_id: (webDevFolder as Folder).id
-            }
-          ])
+          .from('folders')
+          .insert({ 
+            name: folder.name, 
+            user_id: userId 
+          })
+          .select()
+          .single()
       );
       
-      if (webNotesError) throw webNotesError;
+      if (folderError) throw folderError;
+      if (newFolder) {
+        folderIds.set(folder.name, (newFolder as Folder).id);
+      }
     }
 
-    // Add sample notes to React folder
-    if (reactFolder) {
-      const { error: reactNotesError } = await withRetry(() => 
+    // Create notes for each folder
+    for (const folder of sampleFolders) {
+      const folderId = folderIds.get(folder.name);
+      if (!folderId) continue;
+
+      // Get notes that belong to this folder
+      const notesToCreate = folder.notes.map(noteKey => {
+        const note = sampleNotes[noteKey as keyof typeof sampleNotes];
+        return {
+          title: note.title,
+          content: note.content,
+          tags: note.tags,
+          user_id: userId,
+          folder_id: folderId
+        };
+      });
+
+      const { error: notesError } = await withRetry(() => 
         supabase
           .from('notes')
-          .insert([
-            { 
-              title: 'React Hooks Overview', 
-              content: '# React Hooks\n\nHooks are functions that let you "hook into" React state and lifecycle features.',
-              tags: ['react', 'hooks', 'frontend'],
-              user_id: userId,
-              folder_id: (reactFolder as Folder).id
-            },
-            { 
-              title: 'State Management in React', 
-              content: '# State Management\n\nLearn about different state management approaches in React applications.',
-              tags: ['react', 'state-management', 'frontend'],
-              user_id: userId,
-              folder_id: (reactFolder as Folder).id
-            }
-          ])
+          .insert(notesToCreate)
       );
       
-      if (reactNotesError) throw reactNotesError;
+      if (notesError) throw notesError;
     }
 
     toast.success("Sample data created successfully");
