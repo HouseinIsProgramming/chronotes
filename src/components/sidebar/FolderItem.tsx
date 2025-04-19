@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,7 @@ interface FolderItemProps {
   activeNoteId: string | null;
   onCreateNote: (e: React.MouseEvent, folderId: string) => void;
   editingFolderId: string | null;
-  onStartEditing: (folderId: string, event: React.MouseEvent) => void;
+  onStartEditing: (folderId: string, e?: React.MouseEvent | React.KeyboardEvent) => void;
   onRename: (folderId: string, newName: string) => void;
   onDelete: (folderId: string) => void;
   onDeleteNote: (noteId: string) => void;
@@ -98,10 +97,10 @@ export function FolderItem({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    onRename(folder.id, e.currentTarget.value);
+                    onRename(folder.id, (e.target as HTMLInputElement).value);
                   } else if (e.key === 'Escape') {
                     e.preventDefault();
-                    onStartEditing('', e);
+                    onStartEditing('');
                   }
                 }}
                 onBlur={(e) => onRename(folder.id, e.target.value)}
