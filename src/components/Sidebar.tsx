@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
@@ -47,6 +48,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       return googleProvider.identity_data.picture;
     }
     return null;
+  };
+
+  const handleLoginClick = () => {
+    navigate('/auth');
   };
 
   return (
@@ -160,7 +165,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             <Button 
               variant="secondary" 
               className="w-full"
-              onClick={() => navigate('/auth')}
+              onClick={handleLoginClick}
             >
               Log in to enable sync
             </Button>
