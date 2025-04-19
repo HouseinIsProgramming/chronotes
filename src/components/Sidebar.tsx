@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
@@ -52,7 +51,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
     const folderName = "New Folder";
     try {
-      const { data: folder, error } = await withRetry(() => 
+      const { data, error } = await withRetry(() => 
         supabase
           .from('folders')
           .insert({
@@ -69,6 +68,8 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       }
       
       toast.success("Folder created successfully");
+      
+      const folder = data as { id: string } | null;
       if (folder) {
         setEditingFolderId(folder.id);
         refreshFolders(); 
@@ -97,7 +98,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
         return;
       }
       
-      const { data: note, error } = await withRetry(() => 
+      const { data, error } = await withRetry(() => 
         supabase
           .from('notes')
           .insert({
@@ -118,6 +119,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       
       toast.success("Note created successfully");
       
+      const note = data as { id: string } | null;
       if (note) {
         setExpandedFolders(prev => ({
           ...prev,

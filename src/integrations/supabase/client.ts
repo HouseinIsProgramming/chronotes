@@ -13,7 +13,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Retry utility for Supabase operations
 export async function withRetry<T>(
-  operation: () => Promise<{ data: T | null; error: any }> | { then: Function },
+  operation: () => Promise<{ data: T | null; error: any }> | any,
   maxRetries = 3,
   delay = 1000
 ): Promise<{ data: T | null; error: any }> {
@@ -25,17 +25,23 @@ export async function withRetry<T>(
       // Handle both Promise and PostgrestBuilder (which has .then but isn't a full Promise)
       const result = await operation();
       
-      if (!result.error) {
-        return result as { data: T | null; error: any }; // Success - return the result
-      }
-      
-      lastError = result.error;
-      
-      // Don't retry certain errors
-      if (result.error.code === '22P02' || // Invalid syntax (likely client-side issue)
-          result.error.code === '42P01' || // Undefined table (likely schema issue)
-          result.error.code === '42703') { // Undefined column (likely schema issue)
-        return result as { data: T | null; error: any };
+      // Check if the result has the expected structure
+      if ('error' in result) {
+        if (!result.error) {
+          return result; // Success - return the result
+        }
+        
+        lastError = result.error;
+        
+        // Don't retry certain errors
+        if (result.error.code === '22P02' || // Invalid syntax (likely client-side issue)
+            result.error.code === '42P01' || // Undefined table (likely schema issue)
+            result.error.code === '42703') { // Undefined column (likely schema issue)
+          return result;
+        }
+      } else {
+        // If it doesn't have the expected error property, assume success
+        return { data: result as T, error: null };
       }
       
     } catch (error) {

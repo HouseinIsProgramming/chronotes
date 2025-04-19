@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -90,7 +89,6 @@ export default function Index() {
   const fetchUserData = useCallback(async () => {
     if (mode === 'authenticated' && user) {
       try {
-        // Fetch folders with retry
         const { data: folderData, error: folderError } = await withRetry(() => 
           supabase
             .from('folders')
@@ -104,18 +102,20 @@ export default function Index() {
             description: folderError.message
           });
           
-          // If no folders were found, show default folders
           setFolders(sampleFolders);
           return;
         }
 
-        if (!folderData || folderData.length === 0) {
-          // If no folders found, create default folders for the user
+        const typedFolderData = folderData as Array<{
+          id: string;
+          name: string;
+        }> | null;
+
+        if (!typedFolderData || typedFolderData.length === 0) {
           await createDefaultFolders(user.id);
-          return; // This will trigger a re-render and call fetchUserData again
+          return;
         }
 
-        // Fetch notes with retry
         const { data: noteData, error: noteError } = await withRetry(() => 
           supabase
             .from('notes')
@@ -131,11 +131,21 @@ export default function Index() {
           return;
         }
 
-        // Organize data into folder structure with proper type handling for priority
-        const userFolders: Folder[] = folderData.map(folder => ({
+        const typedNoteData = noteData as Array<{
+          id: string;
+          title: string;
+          content: string;
+          tags: string[];
+          created_at: string;
+          last_reviewed_at: string;
+          folder_id: string;
+          priority?: string;
+        }> | null;
+
+        const userFolders: Folder[] = typedFolderData.map(folder => ({
           id: folder.id,
           name: folder.name,
-          notes: (noteData || [])
+          notes: (typedNoteData || [])
             .filter(note => note.folder_id === folder.id)
             .map(note => ({
               ...note,
@@ -145,35 +155,29 @@ export default function Index() {
 
         setFolders(userFolders);
         
-        // Set first note as active if no note is selected
         if (!activeNoteId && userFolders[0]?.notes.length > 0) {
           setActiveNoteId(userFolders[0].notes[0].id);
         }
       } catch (error) {
         console.error("Error in fetchUserData:", error);
         toast.error("Something went wrong loading your data");
-        // Fall back to sample data if database access fails
         setFolders(sampleFolders);
       }
     } else if (mode === 'guest') {
-      // Use sample data for guest mode
       setFolders(sampleFolders);
       
-      // Ensure we have a selected note in guest mode
       if (!activeNoteId && sampleFolders[0]?.notes.length > 0) {
         setActiveNoteId(sampleFolders[0].notes[0].id);
       }
     }
   }, [mode, user, activeNoteId]);
   
-  // Load data when component mounts or mode/user changes
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
 
   const createDefaultFolders = async (userId: string) => {
     try {
-      // Create default folders with retry
       const folderPromises = sampleFolders.map(folder => 
         withRetry(() => 
           supabase
@@ -187,11 +191,14 @@ export default function Index() {
       );
       
       const folderResults = await Promise.all(folderPromises);
+      
       const newFolders = folderResults
-        .map(result => result.data && result.data[0])
+        .map(result => {
+          const data = result.data as Array<{ id: string; name: string }> | null;
+          return data && data[0];
+        })
         .filter(Boolean);
       
-      // Create sample notes in each folder
       for (const folder of newFolders) {
         const sampleFolderNotes = sampleNotes.filter(
           note => note.folder_id === sampleFolders.find(f => f.name === folder.name)?.id
@@ -216,7 +223,6 @@ export default function Index() {
       
       toast.success("Created default folders and notes");
       
-      // Fetch the data again to get the complete structure
       fetchUserData();
     } catch (error) {
       console.error("Error creating default data:", error);
@@ -252,7 +258,6 @@ export default function Index() {
   const handleReview = async (noteId: string) => {
     const now = new Date().toISOString();
     
-    // Update local state
     const updatedFolders = folders.map(folder => ({
       ...folder,
       notes: folder.notes.map(note => 
@@ -264,7 +269,6 @@ export default function Index() {
     
     setFolders(updatedFolders);
     
-    // If authenticated, sync to Supabase
     if (mode === 'authenticated' && user) {
       try {
         const { error } = await withRetry(() => 
@@ -286,7 +290,6 @@ export default function Index() {
   };
 
   const handleNoteUpdate = async (noteId: string, updates: Partial<Note>) => {
-    // Update local state
     const updatedFolders = folders.map(folder => ({
       ...folder,
       notes: folder.notes.map(note => 
@@ -297,8 +300,6 @@ export default function Index() {
     }));
     
     setFolders(updatedFolders);
-    
-    // Supabase sync is handled in the NoteView component
   };
 
   return (
