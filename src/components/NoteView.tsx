@@ -158,25 +158,22 @@ export function NoteView({
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      
-      extension: {
-        buttons: {
-          insertFlashcard: {
-            icon: '📝',
-            label: 'Add Flashcard',
-            onClick: (editor) => {
-              const flashcardTemplate = '???\nQuestion\n---\nAnswer\n???';
-              editor.insertText(flashcardTemplate);
-              
-              const currentPos = editor.getState().selection.anchor;
-              const questionLinePos = currentPos - flashcardTemplate.length + 10;
-              editor.setTextSelection({
-                from: questionLinePos,
-                to: questionLinePos,
-              });
-              
-              return true;
-            },
+      buttons: {
+        insertFlashcard: {
+          icon: '📝',
+          label: 'Add Flashcard',
+          onClick: (editor) => {
+            const flashcardTemplate = '???\nQuestion\n---\nAnswer\n???';
+            editor.insertText(flashcardTemplate);
+            
+            const currentPos = editor.getState().selection.anchor;
+            const questionLinePos = currentPos - flashcardTemplate.length + 10;
+            editor.setTextSelection({
+              from: questionLinePos,
+              to: questionLinePos,
+            });
+            
+            return true;
           },
         }
       }
