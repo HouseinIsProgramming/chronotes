@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,6 +20,20 @@ interface NoteViewProps {
 }
 
 const flashcardStyles = `
+pre[data-language="flashcard"] {
+  background-color: #FEF7CD;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  color: #000;
+  margin: 16px 0;
+}
+
+pre[data-language="flashcard"] code {
+  font-family: inherit;
+  background: none;
+  padding: 0;
+}
+
 .flashcard-container {
   background-color: #FEF7CD;
   border: 1px solid #8E9196;
@@ -156,34 +169,31 @@ export function NoteView({
     
     const element = editorRef.current;
     
-    // Create the editor with the correct configuration structure
-    // The 'buttons' property is part of the configuration object provided to Crepe
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      // Use a custom menu configuration for adding the flashcard button
-      custom: {
-        menu: [
-          {
-            type: 'button',
-            id: 'insertFlashcard',
-            icon: '📝',
-            tooltip: 'Add Flashcard',
-            handler: (editor) => {
-              const flashcardTemplate = '???\nQuestion\n---\nAnswer\n???';
-              editor.insertText(flashcardTemplate);
-              
-              const currentPos = editor.getState().selection.anchor;
-              const questionLinePos = currentPos - flashcardTemplate.length + 10;
-              editor.setTextSelection({
-                from: questionLinePos,
-                to: questionLinePos,
-              });
-              
-              return true;
-            },
+      commands: {
+        insertFlashcard: {
+          trigger: '/',
+          keyword: 'flashcard',
+          icon: '🧠',
+          description: 'Insert a flashcard block',
+          action: (editor) => {
+            const flashcardTemplate = [
+              '```flashcard',
+              '## title',
+              '',
+              '## front side',
+              '',
+              'backside',
+              '',
+              '```flashcardend'
+            ].join('\n');
+            
+            editor.insertText(flashcardTemplate);
+            return true;
           }
-        ]
+        }
       }
     });
 
