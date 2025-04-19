@@ -1,12 +1,12 @@
-
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Folder, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut } from 'lucide-react';
 import { Folder as FolderType, Note } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import { SettingsModal } from './SettingsModal';
 
 interface SidebarProps {
   folders: FolderType[];
@@ -18,7 +18,8 @@ interface SidebarProps {
 
 export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewModeChange }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
-  const { user } = useAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({
@@ -27,22 +28,18 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
     }));
   };
 
-  // Helper function to get user initials
   const getUserInitials = () => {
     if (!user) return '?';
     const email = user.email || '';
     return email.substring(0, 2).toUpperCase();
   };
 
-  // Helper function to get avatar URL from provider data
   const getAvatarUrl = () => {
     if (!user) return null;
-    // Try to get avatar from GitHub
     const githubProvider = user.identities?.find(identity => identity.provider === 'github');
     if (githubProvider?.identity_data?.avatar_url) {
       return githubProvider.identity_data.avatar_url;
     }
-    // Try to get avatar from Google
     const googleProvider = user.identities?.find(identity => identity.provider === 'google');
     if (googleProvider?.identity_data?.picture) {
       return googleProvider.identity_data.picture;
@@ -52,7 +49,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
   return (
     <div className="w-64 h-full bg-sidebar border-r border-sidebar-border flex flex-col">
-      {/* Toggle Buttons */}
       <div className="p-2 border-b border-sidebar-border">
         <div className="flex bg-sidebar-accent rounded-lg p-1">
           <Button
@@ -113,9 +109,28 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
         </div>
       )}
 
-      {/* User Profile Section */}
       <div className="mt-auto p-2">
         <Separator className="mb-2" />
+        
+        <div className="flex items-center justify-between px-2 py-2 mb-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSettingsOpen(true)}
+            className="h-8 w-8"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+
         <div className="flex items-center gap-3 px-2 py-2">
           <Avatar>
             <AvatarImage src={getAvatarUrl() || ''} />
@@ -126,6 +141,8 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             <span className="text-sm font-medium truncate">{user?.email}</span>
           </div>
         </div>
+
+        <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       </div>
     </div>
   );
