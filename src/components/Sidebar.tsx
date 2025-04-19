@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { SettingsModal } from './SettingsModal';
 import { useNavigate } from 'react-router-dom';
+import { Input } from './ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SidebarProps {
   folders: FolderType[];
@@ -21,14 +23,99 @@ interface SidebarProps {
 export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewModeChange }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [newFolderName, setNewFolderName] = useState('');
   const { user, mode, signOut } = useAuth();
   const navigate = useNavigate();
+  let folderRenameTimer: ReturnType<typeof setTimeout>;
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({
       ...prev,
       [folderId]: !prev[folderId]
     }));
+  };
+
+  const handleCreateFolder = async () => {
+    if (mode === 'guest') {
+      toast.error("Please log in to create folders");
+      return;
+    }
+
+    const folderName = "New Folder";
+    try {
+      const { data: folder, error } = await supabase
+        .from('folders')
+        .insert({
+          name: folderName,
+          user_id: user?.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      toast.success("Folder created successfully");
+      setEditingFolderId(folder.id);
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      toast.error("Failed to create folder");
+    }
+  };
+
+  const handleCreateNote = async (folderId: string) => {
+    if (mode === 'guest') {
+      toast.error("Please log in to create notes");
+      return;
+    }
+
+    try {
+      const { data: note, error } = await supabase
+        .from('notes')
+        .insert({
+          title: 'New Note',
+          content: '',
+          folder_id: folderId,
+          user_id: user?.id,
+          tags: []
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      toast.success("Note created successfully");
+      if (note) {
+        onNoteSelect(note.id);
+      }
+    } catch (error) {
+      console.error('Error creating note:', error);
+      toast.error("Failed to create note");
+    }
+  };
+
+  const handleRenameFolder = async (folderId: string, newName: string) => {
+    try {
+      const { error } = await supabase
+        .from('folders')
+        .update({ name: newName })
+        .eq('id', folderId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      toast.success("Folder renamed successfully");
+      setEditingFolderId(null);
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      toast.error("Failed to rename folder");
+    }
+  };
+
+  const startEditingFolder = (folderId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEditingFolderId(folderId);
+  };
+
+  const handleLoginClick = () => {
+    navigate('/auth');
   };
 
   const getUserInitials = () => {
@@ -48,10 +135,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       return googleProvider.identity_data.picture;
     }
     return null;
-  };
-
-  const handleLoginClick = () => {
-    navigate('/auth');
   };
 
   return (
@@ -79,17 +162,70 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
       {viewMode === 'notes' && (
         <div className="flex-1 overflow-auto p-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Folders</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={handleCreateFolder}
+            >
+              <FolderPlus className="h-4 w-4" />
+            </Button>
+          </div>
+
           {folders.map(folder => (
             <div key={folder.id} className="mb-1">
               <div 
-                className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer"
+                className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer group relative"
                 onClick={() => toggleFolder(folder.id)}
+                onMouseEnter={(e) => {
+                  folderRenameTimer = setTimeout(() => {
+                    if (editingFolderId !== folder.id) {
+                      e.currentTarget.querySelector('.rename-button')?.classList.remove('opacity-0');
+                    }
+                  }, 500);
+                }}
+                onMouseLeave={(e) => {
+                  clearTimeout(folderRenameTimer);
+                  if (editingFolderId !== folder.id) {
+                    e.currentTarget.querySelector('.rename-button')?.classList.add('opacity-0');
+                  }
+                }}
               >
                 <span className="mr-1">
                   {expandedFolders[folder.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 </span>
                 <Folder size={16} className="mr-2 text-muted-foreground" />
-                <span className="text-sm font-medium">{folder.name}</span>
+                
+                {editingFolderId === folder.id ? (
+                  <Input
+                    className="h-6 text-sm py-0 px-1"
+                    defaultValue={folder.name}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleRenameFolder(folder.id, e.currentTarget.value);
+                      } else if (e.key === 'Escape') {
+                        setEditingFolderId(null);
+                      }
+                    }}
+                    onBlur={(e) => handleRenameFolder(folder.id, e.target.value)}
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <span className="text-sm font-medium">{folder.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 ml-auto opacity-0 transition-opacity rename-button absolute right-2"
+                      onClick={(e) => startEditingFolder(folder.id, e)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </>
+                )}
               </div>
 
               {expandedFolders[folder.id] && (
@@ -109,6 +245,15 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                       <span className="truncate">{note.title}</span>
                     </div>
                   ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => handleCreateNote(folder.id)}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Note
+                  </Button>
                 </div>
               )}
             </div>
