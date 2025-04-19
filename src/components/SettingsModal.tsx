@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -60,7 +61,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
       // Create default data using the existing database function
       const { error: defaultDataError } = await withRetry(() => 
-        supabase.rpc<void, CreateDefaultDataParams>('create_default_data_for_user', {
+        supabase.rpc('create_default_data_for_user', {
           user_id_param: user.id
         })
       );
