@@ -24,7 +24,7 @@ export function NoteView({
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const editorRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
-  const contentRef = useRef<string>('');
+  const markdownContentRef = useRef<string>('');
   
   // Update last reviewed text when note changes
   useEffect(() => {
@@ -39,14 +39,14 @@ export function NoteView({
     
     // Store the current note content in the ref
     if (note) {
-      contentRef.current = note.content || '';
+      markdownContentRef.current = note.content || '';
     }
   }, [note]);
 
   // Save note content
   const saveNoteContent = useCallback(() => {
-    if (note && onUpdateNote && contentRef.current !== note.content) {
-      onUpdateNote(note.id, { content: contentRef.current });
+    if (note && onUpdateNote && markdownContentRef.current !== note.content) {
+      onUpdateNote(note.id, { content: markdownContentRef.current });
       toast("Note saved");
     }
   }, [note, onUpdateNote]);
@@ -84,35 +84,36 @@ export function NoteView({
     
     const element = editorRef.current;
     
-    // Create new editor instance - removed the invalid 'editable' property
+    // Create new editor instance
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      // The 'editable' property is not part of CrepeConfig type, so we've removed it
-      // Crepe editor is editable by default
     });
 
     // Create and setup the editor
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
       
-      // Setup mutation observer to detect content changes
-      const observer = new MutationObserver((mutations) => {
-        // Extract the content from the editor
-        const content = element.textContent || '';
-        contentRef.current = content;
-      });
-      
-      observer.observe(element, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
-      
-      // Add blur event listener to save content when editor loses focus
-      element.addEventListener('blur', () => {
-        saveNoteContent();
-      });
+      if (crepeRef.current) {
+        // Setup editor change handling to capture raw markdown
+        crepeRef.current.action((ctx) => {
+          const editor = ctx.get('editor');
+          
+          if (editor) {
+            // Listen for document changes and update the raw markdown content
+            editor.on('update', () => {
+              // Get the markdown content directly from the editor
+              const markdown = editor.getText();
+              markdownContentRef.current = markdown;
+            });
+          }
+        });
+        
+        // Add blur event listener to save content when editor loses focus
+        element.addEventListener('blur', () => {
+          saveNoteContent();
+        });
+      }
     });
 
     // Cleanup on unmount or when note changes
