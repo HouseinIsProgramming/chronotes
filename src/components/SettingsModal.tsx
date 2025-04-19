@@ -58,7 +58,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       const { error: defaultDataError } = await withRetry(() => 
         supabase.rpc('create_default_data_for_user', {
           user_id_param: user.id
-        })
+        } as { user_id_param: string })
       );
 
       if (defaultDataError) throw defaultDataError;
