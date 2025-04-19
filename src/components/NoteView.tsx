@@ -115,11 +115,12 @@ export function NoteView({
                 ref={textareaRef}
                 value={localContent} 
                 onChange={e => handleContentChange(e.target.value)} 
-                className="font-mono text-sm w-full whitespace-pre-wrap break-words border-none focus-visible:ring-0 p-0 resize-none overflow-hidden bg-transparent"
+                className="font-mono text-sm w-full whitespace-pre-wrap break-words border-none focus-visible:ring-0 p-0 resize-none bg-transparent"
                 style={{
-                  height: 'auto',
-                  minHeight: 'auto',
+                  height: `${textareaRef.current?.scrollHeight || 'auto'}px`,
+                  overflow: "hidden"
                 }}
+                rows={20}
               />
             )}
           </CardContent>
@@ -127,4 +128,3 @@ export function NoteView({
       </div>
     </div>;
 }
-
