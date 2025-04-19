@@ -10,6 +10,7 @@ import { supabase, withRetry } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Folder } from "@/types";
 
 interface SettingsModalProps {
   open: boolean;
@@ -55,7 +56,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       if (foldersError) throw foldersError;
       
       // Create default folder
-      const { data: defaultFolder, error: defaultFolderError } = await withRetry(() => 
+      const { data, error: defaultFolderError } = await withRetry(() => 
         supabase
           .from('folders')
           .insert({ 
@@ -67,6 +68,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       );
       
       if (defaultFolderError) throw defaultFolderError;
+      
+      // Properly type the defaultFolder
+      const defaultFolder = data as Folder;
       
       // Create a welcome note in the default folder
       if (defaultFolder) {
