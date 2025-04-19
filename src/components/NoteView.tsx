@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,14 +37,14 @@ interface NoteViewProps {
   note: Note | null;
   onReview: (noteId: string) => void;
   onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
-  onDelete?: (noteId: string) => void; // Add onDelete prop
+  onDelete?: (noteId: string) => void;
 }
 
 export function NoteView({
   note,
   onReview,
   onUpdateNote,
-  onDelete // Include onDelete in the destructuring
+  onDelete
 }: NoteViewProps) {
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const editorRef = useRef<HTMLDivElement>(null);
@@ -354,25 +353,27 @@ export function NoteView({
           </MenubarMenu>
 
           <MenubarMenu>
-            <MenubarTrigger className="font-semibold">Priority</MenubarTrigger>
+            <MenubarTrigger className="font-semibold">
+              {note?.priority ? `Priority: ${note.priority}` : 'Set Priority'}
+            </MenubarTrigger>
             <MenubarContent>
               <MenubarItem 
                 onClick={() => handlePriorityUpdate('high')}
-                className={note.priority === 'high' ? 'bg-accent' : ''}
+                className={note?.priority === 'high' ? 'bg-accent' : ''}
               >
                 <Flag className="mr-2 h-4 w-4" />
                 High Priority
               </MenubarItem>
               <MenubarItem 
                 onClick={() => handlePriorityUpdate('medium')}
-                className={note.priority === 'medium' ? 'bg-accent' : ''}
+                className={note?.priority === 'medium' ? 'bg-accent' : ''}
               >
                 <FlagTriangleRight className="mr-2 h-4 w-4" />
                 Medium Priority
               </MenubarItem>
               <MenubarItem 
                 onClick={() => handlePriorityUpdate('low')}
-                className={note.priority === 'low' ? 'bg-accent' : ''}
+                className={note?.priority === 'low' ? 'bg-accent' : ''}
               >
                 <FlagTriangleLeft className="mr-2 h-4 w-4" />
                 Low Priority
