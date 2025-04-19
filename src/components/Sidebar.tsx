@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -29,7 +29,9 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   const [newFolderName, setNewFolderName] = useState('');
   const { user, mode, signOut } = useAuth();
   const navigate = useNavigate();
-  let folderRenameTimer: ReturnType<typeof setTimeout>;
+  
+  // Store the hover timer ref rather than the timer directly
+  const folderRenameTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({
@@ -38,7 +40,11 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
     }));
   };
 
-  const handleCreateFolder = async () => {
+  const handleCreateFolder = async (e: React.MouseEvent) => {
+    // Prevent any default navigation
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (mode === 'guest') {
       toast.error("Please log in to create folders");
       return;
@@ -58,14 +64,18 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       if (error) throw error;
       toast.success("Folder created successfully");
       setEditingFolderId(folder.id);
-      refreshFolders(); // Call the refresh function instead of navigating
+      refreshFolders(); 
     } catch (error) {
       console.error('Error creating folder:', error);
       toast.error("Failed to create folder");
     }
   };
 
-  const handleCreateNote = async (folderId: string) => {
+  const handleCreateNote = async (e: React.MouseEvent, folderId: string) => {
+    // Prevent any default navigation
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (mode === 'guest') {
       toast.error("Please log in to create notes");
       return;
@@ -93,11 +103,13 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
           [folderId]: true
         }));
         
-        // Refresh folders to get the updated list
+        // First refresh the folders to get the updated data
         refreshFolders();
         
-        // After the refresh is complete, select the new note
-        onNoteSelect(note.id);
+        // Then select the new note
+        setTimeout(() => {
+          onNoteSelect(note.id);
+        }, 100); // Small delay to ensure the refresh is processed
       }
     } catch (error) {
       console.error('Error creating note:', error);
@@ -116,7 +128,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       if (error) throw error;
       toast.success("Folder renamed successfully");
       setEditingFolderId(null);
-      refreshFolders(); // Call the refresh function instead of navigating
+      refreshFolders();
     } catch (error) {
       console.error('Error renaming folder:', error);
       toast.error("Failed to rename folder");
@@ -128,9 +140,19 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
     setEditingFolderId(folderId);
   };
 
-  const handleLoginClick = () => {
+  const handleLoginClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     navigate('/auth');
   };
+
+  // Clean up any timers when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (folderRenameTimerRef.current) {
+        clearTimeout(folderRenameTimerRef.current);
+      }
+    };
+  }, []);
 
   const getUserInitials = () => {
     if (!user) return '?';
@@ -193,19 +215,37 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
               <div 
                 className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer group relative"
                 onClick={() => toggleFolder(folder.id)}
-                onMouseEnter={(e) => {
-                  folderRenameTimer = setTimeout(() => {
+                onMouseEnter={() => {
+                  // Clear any existing timer first
+                  if (folderRenameTimerRef.current) {
+                    clearTimeout(folderRenameTimerRef.current);
+                  }
+                  
+                  // Set up a new timer
+                  folderRenameTimerRef.current = setTimeout(() => {
                     if (editingFolderId !== folder.id) {
-                      e.currentTarget.querySelector('.rename-button')?.classList.remove('opacity-0');
+                      const renameButton = document.querySelector(`[data-folder-id="${folder.id}"] .rename-button`) as HTMLElement;
+                      if (renameButton) {
+                        renameButton.classList.remove('opacity-0');
+                      }
                     }
                   }, 500);
                 }}
-                onMouseLeave={(e) => {
-                  clearTimeout(folderRenameTimer);
+                onMouseLeave={() => {
+                  // Clear the timer
+                  if (folderRenameTimerRef.current) {
+                    clearTimeout(folderRenameTimerRef.current);
+                    folderRenameTimerRef.current = null;
+                  }
+                  
                   if (editingFolderId !== folder.id) {
-                    e.currentTarget.querySelector('.rename-button')?.classList.add('opacity-0');
+                    const renameButton = document.querySelector(`[data-folder-id="${folder.id}"] .rename-button`) as HTMLElement;
+                    if (renameButton) {
+                      renameButton.classList.add('opacity-0');
+                    }
                   }
                 }}
+                data-folder-id={folder.id}
               >
                 <span className="mr-1">
                   {expandedFolders[folder.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -253,7 +293,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                           ? "bg-sidebar-accent font-medium"
                           : "hover:bg-sidebar-accent/50"
                       )}
-                      onClick={() => onNoteSelect(note.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onNoteSelect(note.id);
+                      }}
                     >
                       <FileText size={14} className="mr-2 text-muted-foreground" />
                       <span className="truncate">{note.title}</span>
@@ -263,7 +306,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => handleCreateNote(folder.id)}
+                    onClick={(e) => handleCreateNote(e, folder.id)}
                   >
                     <Plus className="h-3 w-3 mr-1" />
                     Add Note

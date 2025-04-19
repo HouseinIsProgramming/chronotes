@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -245,7 +246,6 @@ export default function Index() {
     setFolders(updatedFolders);
     
     // If authenticated, sync to Supabase
-    // Note: We're also handling this in NoteView for redundancy
     if (mode === 'authenticated' && user) {
       try {
         const { error } = await supabase
@@ -277,7 +277,7 @@ export default function Index() {
     
     setFolders(updatedFolders);
     
-    // Supabase sync is now handled in the NoteView component
+    // Supabase sync is handled in the NoteView component
   };
 
   if (isLoading) {
