@@ -68,9 +68,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       navigate('/'); // Redirect to default view
     } catch (error) {
       console.error("Error resetting data:", error);
-      toast.error({
-        description: error instanceof Error ? error.message : "An unknown error occurred"
-      });
+      toast.error(error instanceof Error ? error.message : "An unknown error occurred");
     } finally {
       setIsDeleting(false);
     }
