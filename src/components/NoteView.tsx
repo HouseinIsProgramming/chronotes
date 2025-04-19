@@ -205,11 +205,20 @@ export function NoteView({
   }, [mode]);
 
   const handleCopy = useCallback(() => {
-    if (!note?.content) return;
-    navigator.clipboard.writeText(note.content)
-      .then(() => toast.success("Note content copied to clipboard"))
-      .catch(() => toast.error("Failed to copy note content"));
-  }, [note?.content]);
+    if (!note || !crepeRef.current) return;
+    
+    try {
+      const markdown = crepeRef.current.getMarkdown();
+      if (markdown) {
+        navigator.clipboard.writeText(markdown)
+          .then(() => toast.success("Content copied to clipboard"))
+          .catch(() => toast.error("Failed to copy content"));
+      }
+    } catch (error) {
+      console.error("Error getting markdown content:", error);
+      toast.error("Failed to copy content");
+    }
+  }, [note]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
