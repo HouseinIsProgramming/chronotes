@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
@@ -25,7 +26,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-  const [newFolderName, setNewFolderName] = useState('');
   const { user, mode, signOut } = useAuth();
   const navigate = useNavigate();
   
@@ -131,6 +131,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
   const startEditingFolder = (folderId: string, event: React.MouseEvent) => {
     event.stopPropagation();
+    event.preventDefault();
     setEditingFolderId(folderId);
   };
 
@@ -174,7 +175,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             variant="ghost"
             className={cn("flex-1 h-9 rounded-md font-normal", 
               viewMode === 'notes' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
-            onClick={() => onViewModeChange('notes')}
+            onClick={(e) => {
+              e.preventDefault();
+              onViewModeChange('notes');
+            }}
           >
             Notes
           </Button>
@@ -182,7 +186,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             variant="ghost"
             className={cn("flex-1 h-9 rounded-md font-normal", 
               viewMode === 'review' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
-            onClick={() => onViewModeChange('review')}
+            onClick={(e) => {
+              e.preventDefault();
+              onViewModeChange('review');
+            }}
           >
             Review
           </Button>
@@ -198,6 +205,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
               size="icon"
               className="h-6 w-6"
               onClick={handleCreateFolder}
+              type="button"
             >
               <FolderPlus className="h-4 w-4" />
             </Button>
@@ -207,7 +215,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             <div key={folder.id} className="mb-1">
               <div 
                 className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer group relative"
-                onClick={() => toggleFolder(folder.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleFolder(folder.id);
+                }}
                 onMouseEnter={() => {
                   if (folderRenameTimerRef.current) {
                     clearTimeout(folderRenameTimerRef.current);
@@ -249,8 +260,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
+                        e.preventDefault();
                         handleRenameFolder(folder.id, e.currentTarget.value);
                       } else if (e.key === 'Escape') {
+                        e.preventDefault();
                         setEditingFolderId(null);
                       }
                     }}
@@ -265,6 +278,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                       size="icon"
                       className="h-6 w-6 ml-auto opacity-0 transition-opacity rename-button absolute right-2"
                       onClick={(e) => startEditingFolder(folder.id, e)}
+                      type="button"
                     >
                       <Pencil className="h-3 w-3" />
                     </Button>
@@ -297,6 +311,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                     size="sm"
                     className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
                     onClick={(e) => handleCreateNote(e, folder.id)}
+                    type="button"
                   >
                     <Plus className="h-3 w-3 mr-1" />
                     Add Note
@@ -315,8 +330,12 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setSettingsOpen(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              setSettingsOpen(true);
+            }}
             className="h-8 w-8"
+            type="button"
           >
             <Settings className="h-4 w-4" />
           </Button>
@@ -324,8 +343,12 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             <Button
               variant="ghost"
               size="icon"
-              onClick={signOut}
+              onClick={(e) => {
+                e.preventDefault();
+                signOut();
+              }}
               className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              type="button"
             >
               <LogOut className="h-4 w-4" />
             </Button>
@@ -358,6 +381,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
               variant="secondary" 
               className="w-full"
               onClick={handleLoginClick}
+              type="button"
             >
               Log in to enable sync
             </Button>

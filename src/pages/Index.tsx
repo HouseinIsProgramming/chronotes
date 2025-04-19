@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -230,6 +229,10 @@ export default function Index() {
     setActiveNoteId(noteId);
   };
 
+  const handleViewModeChange = (newMode: 'notes' | 'review') => {
+    setViewMode(newMode);
+  };
+
   const handleReview = async (noteId: string) => {
     const now = new Date().toISOString();
     
@@ -297,7 +300,7 @@ export default function Index() {
         activeNoteId={activeNoteId}
         onNoteSelect={handleNoteSelect}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={handleViewModeChange}
         refreshFolders={fetchUserData}
       />
       
@@ -313,7 +316,7 @@ export default function Index() {
             notes={allNotes} 
             onNoteSelect={handleNoteSelect}
             onReview={handleReview}
-            onViewModeChange={setViewMode}
+            onViewModeChange={handleViewModeChange}
           />
         )}
       </div>
