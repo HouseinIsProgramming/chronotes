@@ -61,8 +61,10 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       onOpenChange(false); // Close the settings modal
     } catch (error) {
       console.error("Error resetting data:", error);
-      // Fix the toast.error call by using the correct type
-      toast.error(`Failed to reset data`);
+      // Use toast with description to provide more flexibility
+      toast.error("Failed to reset data", {
+        description: error instanceof Error ? error.message : "An unknown error occurred"
+      });
     }
   };
 
