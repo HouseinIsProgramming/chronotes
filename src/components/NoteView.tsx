@@ -67,7 +67,7 @@ export function NoteView({
               .from('notes')
               .update({ 
                 content: markdown || note.content,
-                updated_at: new Date().toISOString()
+                // Remove the updated_at field since it's not in the type definition
               })
               .eq('id', note.id)
               .eq('user_id', user.id);
@@ -189,12 +189,13 @@ export function NoteView({
       // If authenticated, also save to Supabase
       if (mode === 'authenticated' && user) {
         try {
+          const updateObject: any = { [field]: value };
+          
+          // Don't include the updated_at field
+          
           const { error } = await supabase
             .from('notes')
-            .update({ 
-              [field]: value,
-              updated_at: new Date().toISOString()
-            })
+            .update(updateObject)
             .eq('id', note.id)
             .eq('user_id', user.id);
             
@@ -281,3 +282,4 @@ export function NoteView({
       </div>
     </div>;
 }
+
