@@ -7,38 +7,48 @@ interface EditableContentProps {
   onSave: (value: string) => void;
   className?: string;
   multiline?: boolean;
+  alwaysEditable?: boolean;
 }
 
-export function EditableContent({ value, onSave, className, multiline = false }: EditableContentProps) {
-  const [isEditing, setIsEditing] = useState(false);
+export function EditableContent({ 
+  value, 
+  onSave, 
+  className, 
+  multiline = false,
+  alwaysEditable = false
+}: EditableContentProps) {
+  const [isEditing, setIsEditing] = useState(alwaysEditable);
   const [editValue, setEditValue] = useState(value);
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
 
+  // Reset edit value when value prop changes (switching between notes)
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      
+    setEditValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    if ((isEditing || alwaysEditable) && inputRef.current) {
       // For textareas, adjust height to fit content
       if (multiline && inputRef.current instanceof HTMLTextAreaElement) {
         inputRef.current.style.height = 'auto';
         inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
       }
     }
-  }, [isEditing, multiline]);
+  }, [isEditing, multiline, alwaysEditable]);
 
   // Update height on content change
   useEffect(() => {
-    if (isEditing && multiline && inputRef.current instanceof HTMLTextAreaElement) {
+    if ((isEditing || alwaysEditable) && multiline && inputRef.current instanceof HTMLTextAreaElement) {
       inputRef.current.style.height = 'auto';
       inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
     }
-  }, [editValue, isEditing, multiline]);
+  }, [editValue, isEditing, multiline, alwaysEditable]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && !multiline) {
       e.preventDefault();
       handleSave();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === 'Escape' && !alwaysEditable) {
       setIsEditing(false);
       setEditValue(value);
     }
@@ -48,17 +58,19 @@ export function EditableContent({ value, onSave, className, multiline = false }:
     if (editValue !== value) {
       onSave(editValue);
     }
-    setIsEditing(false);
+    if (!alwaysEditable) {
+      setIsEditing(false);
+    }
   };
 
-  if (isEditing) {
+  if (isEditing || alwaysEditable) {
     const Component = multiline ? 'textarea' : 'input';
     return (
       <Component
         ref={inputRef as any}
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
-        onBlur={handleSave}
+        onBlur={alwaysEditable ? () => onSave(editValue) : handleSave}
         onKeyDown={handleKeyDown}
         className={cn(
           "w-full bg-background border rounded-md p-2",

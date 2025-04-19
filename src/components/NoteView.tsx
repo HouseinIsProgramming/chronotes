@@ -10,6 +10,7 @@ import { TagsEditor } from '@/components/TagsEditor';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 
 interface NoteViewProps {
   note: Note | null;
@@ -20,6 +21,14 @@ interface NoteViewProps {
 export function NoteView({ note, onReview, onUpdateNote }: NoteViewProps) {
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const [showMarkdown, setShowMarkdown] = useState(true);
+  const [localContent, setLocalContent] = useState('');
+
+  useEffect(() => {
+    // Update local content when note changes
+    if (note) {
+      setLocalContent(note.content);
+    }
+  }, [note?.id]);
 
   useEffect(() => {
     if (note && note.last_reviewed_at) {
@@ -42,6 +51,11 @@ export function NoteView({ note, onReview, onUpdateNote }: NoteViewProps) {
     if (onUpdateNote) {
       onUpdateNote(note.id, { [field]: value });
     }
+  };
+
+  const handleContentChange = (value: string) => {
+    setLocalContent(value);
+    handleUpdate('content', value);
   };
 
   return (
@@ -87,18 +101,25 @@ export function NoteView({ note, onReview, onUpdateNote }: NoteViewProps) {
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">
           <CardContent className="p-6">
             {showMarkdown ? (
-              <div className="prose prose-sm md:prose-base max-w-none">
+              <div className="prose prose-sm md:prose-base max-w-none" onClick={() => setShowMarkdown(false)}>
                 <ReactMarkdown>{note.content}</ReactMarkdown>
               </div>
             ) : (
-              <EditableContent
-                value={note.content}
-                onSave={(value) => handleUpdate('content', value)}
-                multiline
-                className={cn(
-                  "font-mono text-sm w-full whitespace-pre-wrap break-words min-h-[200px]",
-                  "h-auto"
-                )}
+              <Textarea
+                value={localContent}
+                onChange={(e) => handleContentChange(e.target.value)}
+                className="font-mono text-sm w-full whitespace-pre-wrap break-words min-h-[200px] bg-transparent border-none focus-visible:ring-0 p-0"
+                style={{ 
+                  height: 'auto',
+                  minHeight: '200px',
+                  overflowY: 'hidden'
+                }}
+                onInput={(e) => {
+                  // Auto-grow the textarea
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = target.scrollHeight + 'px';
+                }}
               />
             )}
           </CardContent>
