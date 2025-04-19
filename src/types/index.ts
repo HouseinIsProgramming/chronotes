@@ -16,7 +16,7 @@ export interface Folder {
   notes: Note[];
 }
 
-export type ReviewPriority = 'urgent' | 'high' | 'medium' | 'low' | 'reviewed';
+export type ReviewPriority = 'high' | 'medium' | 'low' | 'reviewed';
 
 export interface KanbanColumn {
   title: string;

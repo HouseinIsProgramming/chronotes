@@ -18,7 +18,6 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
 
   const categorizeNotes = (notes: Note[]): KanbanColumn[] => {
     const columns: KanbanColumn[] = [
-      { title: "Urgent", priority: "urgent", notes: [] },
       { title: "High Priority", priority: "high", notes: [] },
       { title: "Medium Priority", priority: "medium", notes: [] },
       { title: "Low Priority", priority: "low", notes: [] },
@@ -43,13 +42,13 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
       const weeksAgo = differenceInWeeks(new Date(), lastReviewedDate);
       
       if (weeksAgo >= 3) {
-        columns[0].notes.push(note); // Urgent
+        columns[0].notes.push(note); // High Priority
       } else if (weeksAgo >= 2) {
-        columns[2].notes.push(note); // Medium
+        columns[1].notes.push(note); // Medium
       } else if (weeksAgo >= 1) {
-        columns[3].notes.push(note); // Low
+        columns[2].notes.push(note); // Low
       } else {
-        columns[4].notes.push(note); // Reviewed
+        columns[3].notes.push(note); // Reviewed
       }
     });
 
@@ -68,7 +67,7 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
           >
             <div className={`
               p-3 border-b rounded-t-lg font-medium text-center
-              ${column.priority === 'urgent' ? 'bg-red-100 text-red-800' : ''}
+              ${column.priority === 'high' ? 'bg-red-100 text-red-800' : ''}
               ${column.priority === 'medium' ? 'bg-amber-100 text-amber-800' : ''}
               ${column.priority === 'low' ? 'bg-blue-100 text-blue-800' : ''}
               ${column.priority === 'reviewed' ? 'bg-green-100 text-green-800' : ''}
