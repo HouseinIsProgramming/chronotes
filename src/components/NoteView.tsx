@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -98,21 +99,47 @@ export function NoteView({
     
     const element = editorRef.current;
     
-    // Create the Crepe editor with change tracking
+    // Create the Crepe editor without the onChange property
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      onChange: (markdown) => {
-        // This is called whenever the markdown content changes
-        console.log("Editor content changed:", markdown?.substring(0, 50) + "...");
-        currentContentRef.current = markdown || '';
-      }
     });
 
+    // Set up the change tracking after the editor is created
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
       // Set initial content
       currentContentRef.current = note.content || '';
+      
+      if (crepeRef.current) {
+        // Setup a MutationObserver to track content changes
+        const editorContainer = element;
+        const observer = new MutationObserver(() => {
+          if (crepeRef.current) {
+            try {
+              const markdown = crepeRef.current.getMarkdown();
+              if (markdown) {
+                currentContentRef.current = markdown;
+                console.log("Editor content changed:", markdown.substring(0, 50) + "...");
+              }
+            } catch (error) {
+              console.error("Error getting markdown during mutation:", error);
+            }
+          }
+        });
+        
+        // Observe changes to the editor's DOM
+        observer.observe(editorContainer, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+        
+        // Add cleanup for the observer
+        return () => {
+          observer.disconnect();
+        };
+      }
     });
 
     return cleanupEditor;
