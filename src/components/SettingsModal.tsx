@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase, withRetry } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Loader } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface SettingsModalProps {
   open: boolean;
@@ -16,7 +18,9 @@ interface SettingsModalProps {
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const toggleTheme = () => {
     const html = document.documentElement;
@@ -28,6 +32,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const handleDeleteAllData = async () => {
     if (!user) return;
     
+    setIsDeleting(true);
     try {
       // Delete all notes and their history for the current user
       const { error: notesError } = await withRetry(() => 
@@ -59,11 +64,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
       toast.success("All data has been reset to default state");
       onOpenChange(false); // Close the settings modal
+      navigate('/'); // Redirect to default view
     } catch (error) {
       console.error("Error resetting data:", error);
       toast.error("Failed to reset data", {
         description: error instanceof Error ? error.message : "An unknown error occurred"
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -107,9 +115,16 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   <Button
                     variant="destructive"
                     onClick={handleDeleteAllData}
-                    disabled={deleteConfirmation !== "I understand"}
+                    disabled={deleteConfirmation !== "I understand" || isDeleting}
                   >
-                    Delete All Data
+                    {isDeleting ? (
+                      <>
+                        <Loader className="animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete All Data'
+                    )}
                   </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
