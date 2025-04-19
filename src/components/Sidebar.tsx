@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
@@ -10,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SettingsModal } from './SettingsModal';
 import { useNavigate } from 'react-router-dom';
 import { Input } from './ui/input';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, withRetry } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface SidebarProps {
@@ -52,16 +51,22 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
     const folderName = "New Folder";
     try {
-      const { data: folder, error } = await supabase
-        .from('folders')
-        .insert({
-          name: folderName,
-          user_id: user?.id
-        })
-        .select()
-        .single();
+      const { data: folder, error } = await withRetry(() => 
+        supabase
+          .from('folders')
+          .insert({
+            name: folderName,
+            user_id: user?.id
+          })
+          .select()
+          .single()
+      );
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating folder:", error);
+        throw error;
+      }
+      
       toast.success("Folder created successfully");
       setEditingFolderId(folder.id);
       refreshFolders(); 
@@ -81,19 +86,33 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
     }
 
     try {
-      const { data: note, error } = await supabase
-        .from('notes')
-        .insert({
-          title: 'New Note',
-          content: '',
-          folder_id: folderId,
-          user_id: user?.id,
-          tags: []
-        })
-        .select()
-        .single();
+      console.log("Creating note in folder:", folderId);
+      
+      if (!folderId || typeof folderId !== 'string' || !folderId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        toast.error("Invalid folder selected");
+        console.error("Invalid folder ID:", folderId);
+        return;
+      }
+      
+      const { data: note, error } = await withRetry(() => 
+        supabase
+          .from('notes')
+          .insert({
+            title: 'New Note',
+            content: '',
+            folder_id: folderId,
+            user_id: user?.id,
+            tags: []
+          })
+          .select()
+          .single()
+      );
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating note:", error);
+        throw error;
+      }
+      
       toast.success("Note created successfully");
       
       if (note) {
@@ -104,7 +123,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
         
         refreshFolders();
         
-        // Delay the note selection to ensure the folders have been refreshed
         setTimeout(() => {
           onNoteSelect(note.id);
         }, 300);
@@ -117,11 +135,13 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
   const handleRenameFolder = async (folderId: string, newName: string) => {
     try {
-      const { error } = await supabase
-        .from('folders')
-        .update({ name: newName })
-        .eq('id', folderId)
-        .eq('user_id', user?.id);
+      const { error } = await withRetry(() => 
+        supabase
+          .from('folders')
+          .update({ name: newName })
+          .eq('id', folderId)
+          .eq('user_id', user?.id)
+      );
 
       if (error) throw error;
       toast.success("Folder renamed successfully");

@@ -6,7 +6,7 @@ import { NoteView } from "@/components/NoteView";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { Folder, Note } from "@/types";
 import { addDays, subWeeks } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, withRetry } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const sampleNotes: Note[] = [
@@ -80,7 +80,7 @@ export default function Index() {
     }
   }, [mode, navigate]);
 
-  const [folders, setFolders] = useState<Folder[]>(sampleFolders);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [viewMode, setViewMode] = useState<'notes' | 'review'>('notes');
@@ -89,17 +89,22 @@ export default function Index() {
   const fetchUserData = useCallback(async () => {
     if (mode === 'authenticated' && user) {
       try {
-        // Fetch folders
-        const { data: folderData, error: folderError } = await supabase
-          .from('folders')
-          .select('*')
-          .eq('user_id', user.id);
+        // Fetch folders with retry
+        const { data: folderData, error: folderError } = await withRetry(() => 
+          supabase
+            .from('folders')
+            .select('*')
+            .eq('user_id', user.id)
+        );
 
         if (folderError) {
           console.error("Error fetching folders:", folderError);
-          toast("Failed to load folders", {
+          toast.error("Failed to load folders", {
             description: folderError.message
           });
+          
+          // If no folders were found, show default folders
+          setFolders(sampleFolders);
           return;
         }
 
@@ -109,15 +114,17 @@ export default function Index() {
           return; // This will trigger a re-render and call fetchUserData again
         }
 
-        // Fetch notes
-        const { data: noteData, error: noteError } = await supabase
-          .from('notes')
-          .select('*')
-          .eq('user_id', user.id);
+        // Fetch notes with retry
+        const { data: noteData, error: noteError } = await withRetry(() => 
+          supabase
+            .from('notes')
+            .select('*')
+            .eq('user_id', user.id)
+        );
 
         if (noteError) {
           console.error("Error fetching notes:", noteError);
-          toast("Failed to load notes", {
+          toast.error("Failed to load notes", {
             description: noteError.message
           });
           return;
@@ -143,7 +150,9 @@ export default function Index() {
         }
       } catch (error) {
         console.error("Error in fetchUserData:", error);
-        toast("Something went wrong loading your data");
+        toast.error("Something went wrong loading your data");
+        // Fall back to sample data if database access fails
+        setFolders(sampleFolders);
       }
     } else if (mode === 'guest') {
       // Use sample data for guest mode
@@ -155,18 +164,25 @@ export default function Index() {
       }
     }
   }, [mode, user, activeNoteId]);
+  
+  // Load data when component mounts or mode/user changes
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
 
   const createDefaultFolders = async (userId: string) => {
     try {
-      // Create default folders
+      // Create default folders with retry
       const folderPromises = sampleFolders.map(folder => 
-        supabase
-          .from('folders')
-          .insert({
-            name: folder.name,
-            user_id: userId
-          })
-          .select()
+        withRetry(() => 
+          supabase
+            .from('folders')
+            .insert({
+              name: folder.name,
+              user_id: userId
+            })
+            .select()
+        )
       );
       
       const folderResults = await Promise.all(folderPromises);
@@ -179,27 +195,29 @@ export default function Index() {
         );
         
         for (const note of sampleFolderNotes) {
-          await supabase
-            .from('notes')
-            .insert({
-              title: note.title,
-              content: note.content,
-              tags: note.tags,
-              folder_id: folder.id,
-              user_id: userId,
-              created_at: new Date().toISOString(),
-              last_reviewed_at: new Date().toISOString()
-            });
+          await withRetry(() => 
+            supabase
+              .from('notes')
+              .insert({
+                title: note.title,
+                content: note.content,
+                tags: note.tags,
+                folder_id: folder.id,
+                user_id: userId,
+                created_at: new Date().toISOString(),
+                last_reviewed_at: new Date().toISOString()
+              })
+          );
         }
       }
       
-      toast("Created default folders and notes");
+      toast.success("Created default folders and notes");
       
       // Fetch the data again to get the complete structure
       fetchUserData();
     } catch (error) {
       console.error("Error creating default data:", error);
-      toast("Failed to create default data");
+      toast.error("Failed to create default data");
     }
   };
 
@@ -246,15 +264,17 @@ export default function Index() {
     // If authenticated, sync to Supabase
     if (mode === 'authenticated' && user) {
       try {
-        const { error } = await supabase
-          .from('notes')
-          .update({ last_reviewed_at: now })
-          .eq('id', noteId)
-          .eq('user_id', user.id);
+        const { error } = await withRetry(() => 
+          supabase
+            .from('notes')
+            .update({ last_reviewed_at: now })
+            .eq('id', noteId)
+            .eq('user_id', user.id)
+        );
           
         if (error) {
           console.error("Error updating review time:", error);
-          toast("Failed to sync review status");
+          toast.error("Failed to sync review status");
         }
       } catch (error) {
         console.error("Exception when updating review time:", error);
