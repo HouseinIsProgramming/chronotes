@@ -11,14 +11,35 @@ import "@milkdown/crepe/theme/frame.css";
 import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarTrigger } from "@/components/ui/menubar";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
+  MenubarTrigger,
+} from "@/components/ui/menubar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 interface NoteViewProps {
   note: Note | null;
   onReview: (noteId: string) => void;
   onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
   onDelete?: (noteId: string) => void;
 }
+
 export function NoteView({
   note,
   onReview,
@@ -30,11 +51,9 @@ export function NoteView({
   const crepeRef = useRef<Crepe | null>(null);
   const [editorContent, setEditorContent] = useState<string>('');
   const currentContentRef = useRef<string>(''); // Use a ref to track the current content
-  const {
-    mode,
-    user
-  } = useAuth();
+  const { mode, user } = useAuth();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   useEffect(() => {
     if (note && note.last_reviewed_at) {
       const distance = formatDistanceToNow(new Date(note.last_reviewed_at), {
@@ -44,32 +63,36 @@ export function NoteView({
     } else {
       setLastReviewedText('Never reviewed');
     }
+    
     if (note) {
       setEditorContent(note.content || '');
       currentContentRef.current = note.content || '';
     }
   }, [note]);
+
   const saveNoteContent = useCallback(async () => {
     console.log("Attempting to save content...");
+    
     if (note && onUpdateNote && crepeRef.current) {
       try {
         // Get markdown directly from Crepe
         const markdown = crepeRef.current.getMarkdown();
         console.log("Markdown content to save:", markdown?.substring(0, 50) + "...");
-
+        
         // Update note in local state
-        onUpdateNote(note.id, {
-          content: markdown || note.content
-        });
-
+        onUpdateNote(note.id, { content: markdown || note.content });
+        
         // If authenticated, also save to Supabase
         if (mode === 'authenticated' && user) {
           try {
-            const {
-              error
-            } = await supabase.from('notes').update({
-              content: markdown || note.content
-            }).eq('id', note.id).eq('user_id', user.id);
+            const { error } = await supabase
+              .from('notes')
+              .update({ 
+                content: markdown || note.content,
+              })
+              .eq('id', note.id)
+              .eq('user_id', user.id);
+              
             if (error) {
               console.error("Error saving note to Supabase:", error);
               toast("Failed to sync note: " + error.message);
@@ -83,37 +106,36 @@ export function NoteView({
         } else {
           toast("Note saved locally");
         }
+        
         console.log("Save operation completed");
       } catch (error) {
         console.error("Error getting markdown from editor:", error);
         // Fallback to current content ref if direct method fails
-        onUpdateNote(note.id, {
-          content: currentContentRef.current
-        });
+        onUpdateNote(note.id, { content: currentContentRef.current });
         toast("Note saved (fallback method)");
       }
     } else {
       console.log("Save failed - note, onUpdateNote, or crepeRef is null");
     }
   }, [note, onUpdateNote, mode, user]);
+
   const handlePriorityUpdate = useCallback(async (priority: 'high' | 'medium' | 'low') => {
     if (note && onUpdateNote) {
       try {
         // If the same priority is clicked, set to null (remove priority)
         const newPriority = note.priority === priority ? null : priority;
-
+        
         // Update note in local state
-        onUpdateNote(note.id, {
-          priority: newPriority
-        });
-
+        onUpdateNote(note.id, { priority: newPriority });
+        
         // If authenticated, also save to Supabase
         if (mode === 'authenticated' && user) {
-          const {
-            error
-          } = await supabase.from('notes').update({
-            priority: newPriority
-          }).eq('id', note.id).eq('user_id', user.id);
+          const { error } = await supabase
+            .from('notes')
+            .update({ priority: newPriority })
+            .eq('id', note.id)
+            .eq('user_id', user.id);
+            
           if (error) {
             console.error("Error updating note priority:", error);
             toast.error("Failed to update note priority");
@@ -129,20 +151,24 @@ export function NoteView({
       }
     }
   }, [note, onUpdateNote, mode, user]);
+
   const handleReview = useCallback(async () => {
     if (note) {
       onReview(note.id);
-
+      
       // If authenticated, also update last_reviewed_at and reset priority in Supabase
       if (mode === 'authenticated' && user) {
         try {
           const now = new Date().toISOString();
-          const {
-            error
-          } = await supabase.from('notes').update({
-            last_reviewed_at: now,
-            priority: null // Reset priority when reviewed
-          }).eq('id', note.id).eq('user_id', user.id);
+          const { error } = await supabase
+            .from('notes')
+            .update({ 
+              last_reviewed_at: now,
+              priority: null  // Reset priority when reviewed
+            })
+            .eq('id', note.id)
+            .eq('user_id', user.id);
+            
           if (error) {
             console.error("Error updating review time in Supabase:", error);
             toast.error("Failed to mark note as reviewed");
@@ -156,6 +182,7 @@ export function NoteView({
       }
     }
   }, [note, onReview, mode, user]);
+
   const handleDelete = useCallback(() => {
     if (mode === 'guest') {
       toast.error("Please log in to delete notes");
@@ -163,10 +190,14 @@ export function NoteView({
     }
     setShowDeleteDialog(true);
   }, [mode]);
+
   const handleCopy = useCallback(() => {
     if (!note?.content) return;
-    navigator.clipboard.writeText(note.content).then(() => toast.success("Note content copied to clipboard")).catch(() => toast.error("Failed to copy note content"));
+    navigator.clipboard.writeText(note.content)
+      .then(() => toast.success("Note content copied to clipboard"))
+      .catch(() => toast.error("Failed to copy note content"));
   }, [note?.content]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -175,26 +206,31 @@ export function NoteView({
         saveNoteContent();
       }
     };
+    
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [saveNoteContent]);
+
   const cleanupEditor = useCallback(() => {
     if (crepeRef.current) {
       crepeRef.current.destroy();
       crepeRef.current = null;
     }
   }, []);
+
   useEffect(() => {
     if (!note || !editorRef.current) return;
+    
     cleanupEditor();
+    
     const element = editorRef.current;
-
+    
     // Create the Crepe editor without the onChange property
     crepeRef.current = new Crepe({
       root: element,
-      defaultValue: note.content || ''
+      defaultValue: note.content || '',
     });
 
     // Set up the change tracking after the editor is created
@@ -202,6 +238,7 @@ export function NoteView({
       console.log("Editor created for note:", note.id);
       // Set initial content
       currentContentRef.current = note.content || '';
+      
       if (crepeRef.current) {
         // Setup a MutationObserver to track content changes
         const editorContainer = element;
@@ -218,46 +255,50 @@ export function NoteView({
             }
           }
         });
-
+        
         // Observe changes to the editor's DOM
         observer.observe(editorContainer, {
           childList: true,
           subtree: true,
           characterData: true
         });
-
+        
         // Add cleanup for the observer
         return () => {
           observer.disconnect();
         };
       }
     });
+
     return cleanupEditor;
   }, [note?.id, cleanupEditor]);
+
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
       <p>Select a note to view</p>
     </div>;
   }
+
   const handleUpdate = async (field: keyof Note, value: any) => {
     if (onUpdateNote) {
       // Update locally
       onUpdateNote(note.id, {
         [field]: value
       });
-
+      
       // If authenticated, also save to Supabase
       if (mode === 'authenticated' && user) {
         try {
-          const updateObject: any = {
-            [field]: value
-          };
-
+          const updateObject: any = { [field]: value };
+          
           // Don't include the updated_at field
-
-          const {
-            error
-          } = await supabase.from('notes').update(updateObject).eq('id', note.id).eq('user_id', user.id);
+          
+          const { error } = await supabase
+            .from('notes')
+            .update(updateObject)
+            .eq('id', note.id)
+            .eq('user_id', user.id);
+            
           if (error) {
             console.error(`Error saving ${field} to Supabase:`, error);
             toast(`Failed to sync ${field}: ` + error.message);
@@ -268,16 +309,21 @@ export function NoteView({
       }
     }
   };
+
   return <div className="h-full flex flex-col overflow-hidden">
     <div className="p-6 border-b space-y-4">
       <div className="flex items-center justify-between">
-        <EditableContent value={note.title} onSave={value => handleUpdate('title', value)} className="text-2xl font-bold" />
+        <EditableContent 
+          value={note.title} 
+          onSave={value => handleUpdate('title', value)} 
+          className="text-2xl font-bold" 
+        />
       </div>
 
       <div className="flex items-center space-x-4 text-muted-foreground text-sm">
         <span>Created {formatDistanceToNow(new Date(note.created_at), {
-            addSuffix: true
-          })}</span>
+          addSuffix: true
+        })}</span>
         <span>•</span>
         <span>{lastReviewedText}</span>
       </div>
@@ -307,19 +353,28 @@ export function NoteView({
           </MenubarMenu>
 
           <MenubarMenu>
-            <MenubarTrigger className="font-semibold background-">
+            <MenubarTrigger className="font-semibold">
               {note?.priority ? `Priority: ${note.priority}` : 'Set Priority'}
             </MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={() => handlePriorityUpdate('high')} className={note?.priority === 'high' ? 'bg-accent' : ''}>
+              <MenubarItem 
+                onClick={() => handlePriorityUpdate('high')}
+                className={note?.priority === 'high' ? 'bg-accent' : ''}
+              >
                 <Flag className="mr-2 h-4 w-4" />
                 High Priority
               </MenubarItem>
-              <MenubarItem onClick={() => handlePriorityUpdate('medium')} className={note?.priority === 'medium' ? 'bg-accent' : ''}>
+              <MenubarItem 
+                onClick={() => handlePriorityUpdate('medium')}
+                className={note?.priority === 'medium' ? 'bg-accent' : ''}
+              >
                 <FlagTriangleRight className="mr-2 h-4 w-4" />
                 Medium Priority
               </MenubarItem>
-              <MenubarItem onClick={() => handlePriorityUpdate('low')} className={note?.priority === 'low' ? 'bg-accent' : ''}>
+              <MenubarItem 
+                onClick={() => handlePriorityUpdate('low')}
+                className={note?.priority === 'low' ? 'bg-accent' : ''}
+              >
                 <FlagTriangleLeft className="mr-2 h-4 w-4" />
                 Low Priority
               </MenubarItem>
@@ -354,15 +409,18 @@ export function NoteView({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => {
-              if (note && onDelete) {
-                onDelete(note.id);
-                setShowDeleteDialog(false);
-              } else {
-                toast.error("Delete functionality is not available");
-                setShowDeleteDialog(false);
-              }
-            }}>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (note && onDelete) {
+                  onDelete(note.id);
+                  setShowDeleteDialog(false);
+                } else {
+                  toast.error("Delete functionality is not available");
+                  setShowDeleteDialog(false);
+                }
+              }}
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
