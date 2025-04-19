@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,13 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from './ui/input';
 import { supabase, withRetry } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface SidebarProps {
   folders: FolderType[];
@@ -27,7 +34,6 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const { user, mode, signOut } = useAuth();
   const navigate = useNavigate();
-  
   const folderRenameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleFolder = (folderId: string, e: React.MouseEvent) => {
@@ -193,6 +199,69 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
     signOut();
   };
 
+  const handleDeleteFolder = async (folderId: string) => {
+    if (mode === 'guest') {
+      toast.error("Please log in to delete folders");
+      return;
+    }
+
+    try {
+      const { error: notesError } = await withRetry(() =>
+        supabase
+          .from('notes')
+          .delete()
+          .eq('folder_id', folderId)
+          .eq('user_id', user?.id)
+      );
+
+      if (notesError) throw notesError;
+
+      const { error: folderError } = await withRetry(() =>
+        supabase
+          .from('folders')
+          .delete()
+          .eq('id', folderId)
+          .eq('user_id', user?.id)
+      );
+
+      if (folderError) throw folderError;
+
+      toast.success("Folder deleted successfully");
+      refreshFolders();
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast.error("Failed to delete folder");
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (mode === 'guest') {
+      toast.error("Please log in to delete notes");
+      return;
+    }
+
+    try {
+      const { error } = await withRetry(() =>
+        supabase
+          .from('notes')
+          .delete()
+          .eq('id', noteId)
+          .eq('user_id', user?.id)
+      );
+
+      if (error) throw error;
+
+      toast.success("Note deleted successfully");
+      if (activeNoteId === noteId) {
+        onNoteSelect('');
+      }
+      refreshFolders();
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast.error("Failed to delete note");
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (folderRenameTimerRef.current) {
@@ -262,92 +331,117 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
           {folders.map(folder => (
             <div key={folder.id} className="mb-1">
-              <div 
-                className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer group relative"
-                onClick={(e) => toggleFolder(folder.id, e)}
-                onMouseEnter={() => {
-                  if (folderRenameTimerRef.current) {
-                    clearTimeout(folderRenameTimerRef.current);
-                  }
-                  
-                  folderRenameTimerRef.current = setTimeout(() => {
-                    if (editingFolderId !== folder.id) {
-                      const renameButton = document.querySelector(`[data-folder-id="${folder.id}"] .rename-button`) as HTMLElement;
-                      if (renameButton) {
-                        renameButton.classList.remove('opacity-0');
+              <ContextMenu>
+                <ContextMenuTrigger>
+                  <div 
+                    className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer group relative"
+                    onClick={(e) => toggleFolder(folder.id, e)}
+                    onMouseEnter={() => {
+                      if (folderRenameTimerRef.current) {
+                        clearTimeout(folderRenameTimerRef.current);
                       }
-                    }
-                  }, 500);
-                }}
-                onMouseLeave={() => {
-                  if (folderRenameTimerRef.current) {
-                    clearTimeout(folderRenameTimerRef.current);
-                    folderRenameTimerRef.current = null;
-                  }
-                  
-                  if (editingFolderId !== folder.id) {
-                    const renameButton = document.querySelector(`[data-folder-id="${folder.id}"] .rename-button`) as HTMLElement;
-                    if (renameButton) {
-                      renameButton.classList.add('opacity-0');
-                    }
-                  }
-                }}
-                data-folder-id={folder.id}
-              >
-                <span className="mr-1">
-                  {expandedFolders[folder.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </span>
-                <Folder size={16} className="mr-2 text-muted-foreground" />
-                
-                {editingFolderId === folder.id ? (
-                  <Input
-                    className="h-6 text-sm py-0 px-1"
-                    defaultValue={folder.name}
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleRenameFolder(folder.id, e.currentTarget.value);
-                      } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        setEditingFolderId(null);
+                      
+                      folderRenameTimerRef.current = setTimeout(() => {
+                        if (editingFolderId !== folder.id) {
+                          const renameButton = document.querySelector(`[data-folder-id="${folder.id}"] .rename-button`) as HTMLElement;
+                          if (renameButton) {
+                            renameButton.classList.remove('opacity-0');
+                          }
+                        }
+                      }, 500);
+                    }}
+                    onMouseLeave={() => {
+                      if (folderRenameTimerRef.current) {
+                        clearTimeout(folderRenameTimerRef.current);
+                        folderRenameTimerRef.current = null;
+                      }
+                      
+                      if (editingFolderId !== folder.id) {
+                        const renameButton = document.querySelector(`[data-folder-id="${folder.id}"] .rename-button`) as HTMLElement;
+                        if (renameButton) {
+                          renameButton.classList.add('opacity-0');
+                        }
                       }
                     }}
-                    onBlur={(e) => handleRenameFolder(folder.id, e.target.value)}
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <span className="text-sm font-medium">{folder.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 ml-auto opacity-0 transition-opacity rename-button absolute right-2"
-                      onClick={(e) => startEditingFolder(folder.id, e)}
-                      type="button"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                  </>
-                )}
-              </div>
+                    data-folder-id={folder.id}
+                  >
+                    <span className="mr-1">
+                      {expandedFolders[folder.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </span>
+                    <Folder size={16} className="mr-2 text-muted-foreground" />
+                    
+                    {editingFolderId === folder.id ? (
+                      <Input
+                        className="h-6 text-sm py-0 px-1"
+                        defaultValue={folder.name}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleRenameFolder(folder.id, e.currentTarget.value);
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            setEditingFolderId(null);
+                          }
+                        }}
+                        onBlur={(e) => handleRenameFolder(folder.id, e.target.value)}
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        <span className="text-sm font-medium">{folder.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 ml-auto opacity-0 transition-opacity rename-button absolute right-2"
+                          onClick={(e) => startEditingFolder(folder.id, e)}
+                          type="button"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem 
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => handleDeleteFolder(folder.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Folder
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
 
               {expandedFolders[folder.id] && (
                 <div className="ml-6 mt-1 space-y-1">
                   {folder.notes.map(note => (
-                    <div
-                      key={note.id}
-                      className={cn(
-                        "flex items-center p-2 rounded-md text-sm cursor-pointer",
-                        activeNoteId === note.id
-                          ? "bg-sidebar-accent font-medium"
-                          : "hover:bg-sidebar-accent/50"
-                      )}
-                      onClick={(e) => handleNoteClick(note.id, e)}
-                    >
-                      <FileText size={14} className="mr-2 text-muted-foreground" />
-                      <span className="truncate">{note.title}</span>
-                    </div>
+                    <ContextMenu key={note.id}>
+                      <ContextMenuTrigger>
+                        <div
+                          className={cn(
+                            "flex items-center p-2 rounded-md text-sm cursor-pointer",
+                            activeNoteId === note.id
+                              ? "bg-sidebar-accent font-medium"
+                              : "hover:bg-sidebar-accent/50"
+                          )}
+                          onClick={(e) => handleNoteClick(note.id, e)}
+                        >
+                          <FileText size={14} className="mr-2 text-muted-foreground" />
+                          <span className="truncate">{note.title}</span>
+                        </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem 
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteNote(note.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Note
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   ))}
                   <Button
                     variant="ghost"
