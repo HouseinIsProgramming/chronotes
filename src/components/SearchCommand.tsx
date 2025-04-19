@@ -57,7 +57,7 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
             {notes.map((note) => (
               <CommandItem
                 key={note.id}
-                value={note.title}
+                value={`${note.id}-${note.title}`}
                 onSelect={() => {
                   onNoteSelect(note.id);
                   setOpen(false);
