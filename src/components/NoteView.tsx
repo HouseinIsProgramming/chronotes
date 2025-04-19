@@ -28,7 +28,7 @@ export function NoteView({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   
-  // Fixed the useEditor hook usage to follow the Milkdown API correctly
+  // Fixed the Milkdown configuration to return proper types
   const { loading, get } = useEditor((root) => {
     return get()
       .use(nord)
@@ -36,6 +36,8 @@ export function NoteView({
       .config((ctx) => {
         ctx.set(rootCtx, root);
         ctx.set(defaultValueCtx, note?.content || '');
+        // Return the configuration context
+        return ctx;
       });
   }, [note?.id, note?.content]);
 
