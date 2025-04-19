@@ -1,7 +1,7 @@
-
 import { differenceInWeeks } from "date-fns";
 import { KanbanColumn, Note, ReviewPriority } from "@/types";
 import { NoteCard } from "@/components/NoteCard";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface KanbanBoardProps {
   notes: Note[];
@@ -11,6 +11,8 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }: KanbanBoardProps) {
+  const isMobile = useIsMobile();
+  
   const handleCardClick = (noteId: string) => {
     onNoteSelect(noteId);
     onViewModeChange('notes');
@@ -58,12 +60,15 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
   const columns = categorizeNotes(notes);
 
   return (
-    <div className="h-full overflow-auto">
-      <div className="h-full flex gap-4 p-4">
+    <div className={`h-full overflow-auto ${isMobile ? 'p-2' : 'p-4'}`}>
+      <div className={`h-full ${isMobile ? 'flex flex-col space-y-4' : 'flex gap-4'}`}>
         {columns.map((column) => (
           <div 
             key={column.priority}
-            className="flex flex-col min-w-[300px] max-w-[300px] bg-card rounded-lg border"
+            className={`
+              flex flex-col bg-card rounded-lg border
+              ${isMobile ? 'w-full' : 'min-w-[300px] max-w-[300px]'}
+            `}
           >
             <div className={`
               p-3 border-b rounded-t-lg font-medium text-center
@@ -75,7 +80,10 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
               {column.title}
               <span className="ml-2 opacity-70">({column.notes.length})</span>
             </div>
-            <div className="p-2 flex-1 overflow-y-auto">
+            <div className={`
+              p-2 flex-1 overflow-y-auto
+              ${isMobile ? 'max-h-[300px]' : ''}
+            `}>
               {column.notes.map((note) => (
                 <NoteCard 
                   key={note.id} 
