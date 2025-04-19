@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Folder } from "@/types";
+import { generateSampleData } from "@/utils/sampleDataGenerator";
 
 interface SettingsModalProps {
   open: boolean;
@@ -20,6 +20,7 @@ interface SettingsModalProps {
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -35,7 +36,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     
     setIsDeleting(true);
     try {
-      // Delete all notes and their history for the current user
       const { error: notesError } = await withRetry(() => 
         supabase
           .from('notes')
@@ -45,7 +45,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
       if (notesError) throw notesError;
 
-      // Delete all folders for the current user
       const { error: foldersError } = await withRetry(() => 
         supabase
           .from('folders')
@@ -55,7 +54,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
       if (foldersError) throw foldersError;
       
-      // Create default folder
       const { data, error: defaultFolderError } = await withRetry(() => 
         supabase
           .from('folders')
@@ -69,10 +67,8 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       
       if (defaultFolderError) throw defaultFolderError;
       
-      // Properly type the defaultFolder
       const defaultFolder = data as Folder;
       
-      // Create a welcome note in the default folder
       if (defaultFolder) {
         const { error: welcomeNoteError } = await withRetry(() => 
           supabase
@@ -90,9 +86,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       }
 
       toast.success("All data has been reset to default state");
-      onOpenChange(false); // Close the settings modal
-      
-      // Force refresh the page to get the new state
+      onOpenChange(false);
       window.location.href = '/';
       
     } catch (error) {
@@ -101,6 +95,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleGenerateSampleData = async () => {
+    if (!user) return;
+    
+    setIsGenerating(true);
+    await generateSampleData(user.id);
+    setIsGenerating(false);
   };
 
   return (
@@ -115,7 +117,23 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             <Switch onCheckedChange={toggleTheme} />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-4">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleGenerateSampleData}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  Generating Sample Data...
+                </>
+              ) : (
+                'Generate Sample Data'
+              )}
+            </Button>
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full">
