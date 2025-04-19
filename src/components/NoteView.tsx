@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
+import { toast } from "sonner";
 
 interface NoteViewProps {
   note: Note | null;
@@ -23,8 +24,8 @@ export function NoteView({
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const editorRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
-  const observerRef = useRef<MutationObserver | null>(null);
-
+  const contentRef = useRef<string>('');
+  
   // Update last reviewed text when note changes
   useEffect(() => {
     if (note && note.last_reviewed_at) {
@@ -35,15 +36,39 @@ export function NoteView({
     } else {
       setLastReviewedText('Never reviewed');
     }
+    
+    // Store the current note content in the ref
+    if (note) {
+      contentRef.current = note.content || '';
+    }
   }, [note]);
 
-  // Cleanup function to destroy editor and disconnect observer
-  const cleanupEditor = useCallback(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-      observerRef.current = null;
+  // Save note content
+  const saveNoteContent = useCallback(() => {
+    if (note && onUpdateNote && contentRef.current !== note.content) {
+      onUpdateNote(note.id, { content: contentRef.current });
+      toast("Note saved");
     }
+  }, [note, onUpdateNote]);
+
+  // Setup keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Save on Ctrl+S or Cmd+S
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveNoteContent();
+      }
+    };
     
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [saveNoteContent]);
+
+  // Cleanup editor when component unmounts
+  const cleanupEditor = useCallback(() => {
     if (crepeRef.current) {
       crepeRef.current.destroy();
       crepeRef.current = null;
@@ -57,10 +82,13 @@ export function NoteView({
     // Clean up any existing editor before creating a new one
     cleanupEditor();
     
+    const element = editorRef.current;
+    
     // Create new editor instance
     crepeRef.current = new Crepe({
-      root: editorRef.current,
+      root: element,
       defaultValue: note.content || '',
+      editable: true,
     });
 
     // Create and setup the editor
@@ -68,23 +96,27 @@ export function NoteView({
       console.log("Editor created for note:", note.id);
       
       // Setup mutation observer to detect content changes
-      if (editorRef.current && onUpdateNote && note) {
-        observerRef.current = new MutationObserver(() => {
-          const content = editorRef.current?.textContent || '';
-          onUpdateNote(note.id, { content });
-        });
-        
-        observerRef.current.observe(editorRef.current, {
-          childList: true,
-          subtree: true,
-          characterData: true
-        });
-      }
+      const observer = new MutationObserver((mutations) => {
+        // Extract the content from the editor
+        const content = element.textContent || '';
+        contentRef.current = content;
+      });
+      
+      observer.observe(element, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+      
+      // Add blur event listener to save content when editor loses focus
+      element.addEventListener('blur', () => {
+        saveNoteContent();
+      });
     });
 
     // Cleanup on unmount or when note changes
     return cleanupEditor;
-  }, [note?.id, cleanupEditor, onUpdateNote]);
+  }, [note?.id, cleanupEditor, saveNoteContent]);
 
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -123,10 +155,8 @@ export function NoteView({
       <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">
           <CardContent className="p-6 h-full">
-            <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none">
-              <div className="milkdown-editor-wrapper">
-                {/* Crepe will render here */}
-              </div>
+            <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none focus:outline-none">
+              {/* Milkdown editor will render here */}
             </div>
           </CardContent>
         </Card>
