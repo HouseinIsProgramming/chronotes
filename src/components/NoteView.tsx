@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -37,13 +38,24 @@ export function NoteView({
       crepeRef.current.create().then(() => {
         console.log("Editor created");
         
-        // Add content change listener if editor is available
-        if (crepeRef.current) {
-          crepeRef.current.onChange((markdown) => {
-            if (onUpdateNote && note) {
-              handleContentChange(markdown);
+        // Use a MutationObserver to detect content changes in the editor
+        if (editorRef.current) {
+          const observer = new MutationObserver(() => {
+            if (onUpdateNote && note && crepeRef.current) {
+              // Get content from the editor div
+              const content = editorRef.current?.textContent || '';
+              handleContentChange(content);
             }
           });
+          
+          observer.observe(editorRef.current, {
+            childList: true,
+            subtree: true,
+            characterData: true
+          });
+          
+          // Return cleanup function for the observer
+          return () => observer.disconnect();
         }
       });
 
@@ -135,16 +147,10 @@ export function NoteView({
           <CardContent className="p-6 h-full">
             {showMarkdown ? (
               <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none">
-                {loading ? (
-                  <div className="flex items-center justify-center p-4">
-                    <p>Loading editor...</p>
-                  </div>
-                ) : (
-                  <div className="milkdown-editor-wrapper">
-                    {/* Fixed rendering of Milkdown editor */}
-                    {get() && <div className="milkdown" />}
-                  </div>
-                )}
+                {/* No loading check needed as we handle this with useEffect */}
+                <div className="milkdown-editor-wrapper">
+                  {/* Crepe will render here */}
+                </div>
               </div>
             ) : (
               <textarea 
