@@ -94,29 +94,33 @@ export function NoteView({
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
       
-      if (crepeRef.current && crepeRef.current.editor) {
-        // Access the editor instance directly if available
-        const editor = crepeRef.current.editor;
-        
-        // Listen for document changes and update the raw markdown content
-        editor.on('change', () => {
-          // Get the raw markdown content
-          markdownContentRef.current = editor.getMarkdown();
-        });
-      } else {
-        // Fallback to using mutation observer if editor instance isn't directly accessible
-        const observer = new MutationObserver(() => {
-          if (crepeRef.current && crepeRef.current.getMarkdown) {
-            markdownContentRef.current = crepeRef.current.getMarkdown();
+      // Use a MutationObserver to track changes in the editor
+      const observer = new MutationObserver(() => {
+        if (crepeRef.current) {
+          try {
+            // Use getText() method if available to get the raw markdown
+            if (typeof crepeRef.current.getText === 'function') {
+              markdownContentRef.current = crepeRef.current.getText();
+            } 
+            // Fallback to getMark() if available
+            else if (typeof crepeRef.current.getMark === 'function') {
+              markdownContentRef.current = crepeRef.current.getMark();
+            }
+            // Last resort fallback to getContent
+            else if (typeof crepeRef.current.getContent === 'function') {
+              markdownContentRef.current = crepeRef.current.getContent();
+            }
+          } catch (error) {
+            console.error('Error getting markdown content:', error);
           }
-        });
-        
-        observer.observe(element, {
-          childList: true,
-          subtree: true,
-          characterData: true
-        });
-      }
+        }
+      });
+      
+      observer.observe(element, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
       
       // Add blur event listener to save content when editor loses focus
       element.addEventListener('blur', () => {
