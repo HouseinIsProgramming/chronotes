@@ -1,3 +1,4 @@
+
 import { differenceInWeeks } from "date-fns";
 import { KanbanColumn, Note, ReviewPriority } from "@/types";
 import { NoteCard } from "@/components/NoteCard";
@@ -61,13 +62,22 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
 
   return (
     <div className={`h-full overflow-auto ${isMobile ? 'p-2' : 'p-4'}`}>
-      <div className={`h-full ${isMobile ? 'flex flex-col space-y-4' : 'flex gap-4'}`}>
+      <div className={`
+        h-full 
+        ${isMobile 
+          ? 'flex flex-col space-y-4' 
+          : 'flex flex-wrap gap-4 content-start'
+        }
+      `}>
         {columns.map((column) => (
           <div 
             key={column.priority}
             className={`
               flex flex-col bg-card rounded-lg border
-              ${isMobile ? 'w-full' : 'min-w-[300px] max-w-[300px]'}
+              ${isMobile 
+                ? 'w-full' 
+                : 'w-[calc(50%-0.5rem)] min-h-[400px]'
+              }
             `}
           >
             <div className={`
