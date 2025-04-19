@@ -30,6 +30,50 @@ export type Database = {
         }
         Relationships: []
       }
+      note_history: {
+        Row: {
+          content: string
+          folder_id: string
+          id: string
+          note_id: string
+          priority: string | null
+          snapshot_created_at: string
+          tags: string[]
+          title: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          folder_id: string
+          id?: string
+          note_id: string
+          priority?: string | null
+          snapshot_created_at?: string
+          tags?: string[]
+          title: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          folder_id?: string
+          id?: string
+          note_id?: string
+          priority?: string | null
+          snapshot_created_at?: string
+          tags?: string[]
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_history_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           content: string

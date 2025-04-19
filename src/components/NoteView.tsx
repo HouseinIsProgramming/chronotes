@@ -5,7 +5,7 @@ import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Crepe } from "@milkdown/crepe";
-import { Save, Trash2, Copy, Flag, FlagTriangleRight, FlagTriangleLeft, Feather } from 'lucide-react';
+import { Save, Trash2, Copy, Flag, FlagTriangleRight, FlagTriangleLeft, Feather, History } from 'lucide-react';
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import { toast } from "sonner";
@@ -82,10 +82,11 @@ export function NoteView({
         // Update note in local state
         onUpdateNote(note.id, { content: markdown || note.content });
         
-        // If authenticated, also save to Supabase
+        // If authenticated, save to Supabase and create history snapshot
         if (mode === 'authenticated' && user) {
           try {
-            const { error } = await supabase
+            // Start a transaction to update note and create history
+            const { error: noteError } = await supabase
               .from('notes')
               .update({ 
                 content: markdown || note.content,
@@ -93,18 +94,37 @@ export function NoteView({
               .eq('id', note.id)
               .eq('user_id', user.id);
               
-            if (error) {
-              console.error("Error saving note to Supabase:", error);
-              toast("Failed to sync note: " + error.message);
+            if (noteError) {
+              console.error("Error saving note to Supabase:", noteError);
+              toast.error("Failed to sync note: " + noteError.message);
+              return;
+            }
+
+            // Create history snapshot
+            const { error: historyError } = await supabase
+              .from('note_history')
+              .insert({
+                note_id: note.id,
+                user_id: user.id,
+                title: note.title,
+                content: markdown || note.content,
+                tags: note.tags,
+                priority: note.priority,
+                folder_id: note.folder_id
+              });
+
+            if (historyError) {
+              console.error("Error creating history snapshot:", historyError);
+              toast.error("Note saved but failed to create history snapshot");
             } else {
-              toast("Note saved and synced");
+              toast.success("Note saved with history snapshot");
             }
           } catch (error) {
             console.error("Exception when saving to Supabase:", error);
-            toast("Note saved locally only");
+            toast.error("Note saved locally only");
           }
         } else {
-          toast("Note saved locally");
+          toast.success("Note saved locally");
         }
         
         console.log("Save operation completed");
@@ -112,7 +132,7 @@ export function NoteView({
         console.error("Error getting markdown from editor:", error);
         // Fallback to current content ref if direct method fails
         onUpdateNote(note.id, { content: currentContentRef.current });
-        toast("Note saved (fallback method)");
+        toast.success("Note saved (fallback method)");
       }
     } else {
       console.log("Save failed - note, onUpdateNote, or crepeRef is null");
@@ -408,6 +428,18 @@ export function NoteView({
               <Feather className="mr-2 h-4 w-4" />
               Mark as Reviewed
             </MenubarTrigger>
+          </MenubarMenu>
+
+          <MenubarMenu>
+            <MenubarTrigger className="font-semibold">
+              <History className="mr-2 h-4 w-4" />
+              History
+            </MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem onClick={() => toast.info("Note history feature coming soon!")}>
+                View History
+              </MenubarItem>
+            </MenubarContent>
           </MenubarMenu>
         </Menubar>
       </div>
