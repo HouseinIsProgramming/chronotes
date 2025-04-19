@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -37,12 +38,14 @@ interface NoteViewProps {
   note: Note | null;
   onReview: (noteId: string) => void;
   onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
+  onDelete?: (noteId: string) => void; // Add onDelete prop
 }
 
 export function NoteView({
   note,
   onReview,
-  onUpdateNote
+  onUpdateNote,
+  onDelete // Include onDelete in the destructuring
 }: NoteViewProps) {
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const editorRef = useRef<HTMLDivElement>(null);
@@ -408,8 +411,11 @@ export function NoteView({
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                if (note) {
+                if (note && onDelete) {
                   onDelete(note.id);
+                  setShowDeleteDialog(false);
+                } else {
+                  toast.error("Delete functionality is not available");
                   setShowDeleteDialog(false);
                 }
               }}
