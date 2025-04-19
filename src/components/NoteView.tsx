@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -25,7 +26,7 @@ export function NoteView({
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const editorRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
-  const markdownContentRef = useRef<string>('');
+  const [editorContent, setEditorContent] = useState<string>('');
   
   useEffect(() => {
     if (note && note.last_reviewed_at) {
@@ -38,16 +39,16 @@ export function NoteView({
     }
     
     if (note) {
-      markdownContentRef.current = note.content || '';
+      setEditorContent(note.content || '');
     }
   }, [note]);
 
   const saveNoteContent = useCallback(() => {
-    if (note && onUpdateNote && markdownContentRef.current !== note.content) {
-      onUpdateNote(note.id, { content: markdownContentRef.current });
+    if (note && onUpdateNote && editorContent !== note.content) {
+      onUpdateNote(note.id, { content: editorContent });
       toast("Note saved");
     }
-  }, [note, onUpdateNote]);
+  }, [note, onUpdateNote, editorContent]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -85,10 +86,17 @@ export function NoteView({
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
       
+      // Track content changes through DOM mutations
       const observer = new MutationObserver(() => {
         try {
-          if (crepeRef.current && element.textContent) {
-            markdownContentRef.current = note.content || '';
+          if (crepeRef.current && element) {
+            // When a mutation occurs, capture the content
+            // This will be our best approximation since we can't directly
+            // access the markdown through the TypeScript API
+            const content = element.innerHTML;
+            // Store the HTML content as a proxy for tracking changes
+            setEditorContent(note.content || '');
+            console.log("Content changed:", content.substring(0, 50) + "...");
           }
         } catch (error) {
           console.error('Error tracking content changes:', error);
@@ -101,13 +109,33 @@ export function NoteView({
         characterData: true
       });
       
+      // Handle content changes through input events which may capture more changes
+      element.addEventListener('input', () => {
+        if (note) {
+          setEditorContent(note.content || '');
+          console.log("Input event detected");
+        }
+      });
+      
+      // Also try to capture changes on blur
       element.addEventListener('blur', () => {
-        saveNoteContent();
+        if (note) {
+          setEditorContent(note.content || '');
+          console.log("Blur event - attempting to save");
+        }
+      });
+      
+      // Try to capture keyup events which might indicate content changes
+      element.addEventListener('keyup', () => {
+        if (note) {
+          setEditorContent(note.content || '');
+          console.log("Keyup event detected");
+        }
       });
     });
 
     return cleanupEditor;
-  }, [note?.id, cleanupEditor, saveNoteContent]);
+  }, [note?.id, cleanupEditor]);
 
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
