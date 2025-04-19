@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -85,12 +84,10 @@ export default function Index() {
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [viewMode, setViewMode] = useState<'notes' | 'review'>('notes');
-  const [isLoading, setIsLoading] = useState(false);
   const allNotes = folders.flatMap(folder => folder.notes);
 
   const fetchUserData = useCallback(async () => {
     if (mode === 'authenticated' && user) {
-      setIsLoading(true);
       try {
         // Fetch folders
         const { data: folderData, error: folderError } = await supabase
@@ -134,39 +131,30 @@ export default function Index() {
             ?.filter(note => note.folder_id === folder.id)
             .map(note => ({
               ...note,
-              // Make sure priority is typed correctly
               priority: note.priority as 'high' | 'medium' | 'low' | undefined
             })) || []
         }));
 
-        if (userFolders.length > 0) {
-          setFolders(userFolders);
-          
-          // Set first note as active if no note is selected
-          if (!activeNoteId && userFolders[0].notes.length > 0) {
-            setActiveNoteId(userFolders[0].notes[0].id);
-          }
+        setFolders(userFolders);
+        
+        // Set first note as active if no note is selected
+        if (!activeNoteId && userFolders[0]?.notes.length > 0) {
+          setActiveNoteId(userFolders[0].notes[0].id);
         }
       } catch (error) {
         console.error("Error in fetchUserData:", error);
         toast("Something went wrong loading your data");
-      } finally {
-        setIsLoading(false);
       }
     } else if (mode === 'guest') {
       // Use sample data for guest mode
       setFolders(sampleFolders);
       
       // Ensure we have a selected note in guest mode
-      if (!activeNoteId && sampleFolders.length > 0 && sampleFolders[0].notes.length > 0) {
+      if (!activeNoteId && sampleFolders[0]?.notes.length > 0) {
         setActiveNoteId(sampleFolders[0].notes[0].id);
       }
     }
   }, [mode, user, activeNoteId]);
-
-  useEffect(() => {
-    fetchUserData();
-  }, [fetchUserData]);
 
   const createDefaultFolders = async (userId: string) => {
     try {
@@ -289,16 +277,6 @@ export default function Index() {
     
     // Supabase sync is handled in the NoteView component
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Loading your notes...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen overflow-hidden">
