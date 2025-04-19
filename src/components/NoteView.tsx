@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+
+import { useEffect, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -9,12 +10,13 @@ import { TagsEditor } from '@/components/TagsEditor';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
+
 interface NoteViewProps {
   note: Note | null;
   onReview: (noteId: string) => void;
   onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
 }
+
 export function NoteView({
   note,
   onReview,
@@ -23,12 +25,15 @@ export function NoteView({
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const [showMarkdown, setShowMarkdown] = useState(true);
   const [localContent, setLocalContent] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     // Update local content when note changes
     if (note) {
       setLocalContent(note.content);
     }
   }, [note?.id]);
+
   useEffect(() => {
     if (note && note.last_reviewed_at) {
       const distance = formatDistanceToNow(new Date(note.last_reviewed_at), {
@@ -39,11 +44,22 @@ export function NoteView({
       setLastReviewedText('Never reviewed');
     }
   }, [note]);
+
+  useEffect(() => {
+    // Auto-resize textarea
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [localContent]);
+
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
         <p>Select a note to view</p>
       </div>;
   }
+
   const handleUpdate = (field: keyof Note, value: any) => {
     if (onUpdateNote) {
       onUpdateNote(note.id, {
@@ -51,10 +67,12 @@ export function NoteView({
       });
     }
   };
+
   const handleContentChange = (value: string) => {
     setLocalContent(value);
     handleUpdate('content', value);
   };
+
   return <div className="h-full flex flex-col overflow-hidden">
       <div className="p-6 border-b space-y-4">
         <div className="flex items-center justify-between">
@@ -85,20 +103,28 @@ export function NoteView({
       <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">
           <CardContent className="p-6 h-full">
-            {showMarkdown ? <div className="prose prose-sm md:prose-base max-w-none" onClick={() => setShowMarkdown(false)}>
+            {showMarkdown ? (
+              <div 
+                className="prose prose-sm md:prose-base max-w-none cursor-text" 
+                onClick={() => setShowMarkdown(false)}
+              >
                 <ReactMarkdown>{note.content}</ReactMarkdown>
-              </div> : <Textarea value={localContent} onChange={e => handleContentChange(e.target.value)} style={{
-            height: 'auto',
-            minHeight: '200px',
-            overflowY: 'hidden'
-          }} onInput={e => {
-            // Auto-grow the textarea
-            const target = e.target as HTMLTextAreaElement;
-            target.style.height = 'auto';
-            target.style.height = target.scrollHeight + 'px';
-          }} className="font-mono text-sm w-full whitespace-pre-wrap break-words min-h-[200px] bg-transparent border-none focus-visible:ring-0 p-0 h-full" />}
+              </div>
+            ) : (
+              <textarea 
+                ref={textareaRef}
+                value={localContent} 
+                onChange={e => handleContentChange(e.target.value)} 
+                className="font-mono text-sm w-full whitespace-pre-wrap break-words border-none focus-visible:ring-0 p-0 resize-none overflow-hidden bg-transparent"
+                style={{
+                  height: 'auto',
+                  minHeight: 'auto',
+                }}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
     </div>;
 }
+
