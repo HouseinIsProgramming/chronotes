@@ -62,8 +62,12 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
                   onNoteSelect(note.id);
                   setOpen(false);
                 }}
+                className="flex justify-between items-center"
               >
-                {note.title}
+                <span className="flex-1 truncate">{note.title}</span>
+                <span className="ml-2 text-xs text-muted-foreground opacity-75 truncate max-w-[30%]">
+                  {note.folder_id === "1" ? "Web Development" : "Frontend Essentials"}
+                </span>
               </CommandItem>
             ))}
           </CommandGroup>
