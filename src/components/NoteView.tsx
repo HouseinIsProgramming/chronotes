@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -155,27 +156,34 @@ export function NoteView({
     
     const element = editorRef.current;
     
+    // Create the editor with the correct configuration structure
+    // The 'buttons' property is part of the configuration object provided to Crepe
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      buttons: {
-        insertFlashcard: {
-          icon: '📝',
-          label: 'Add Flashcard',
-          onClick: (editor) => {
-            const flashcardTemplate = '???\nQuestion\n---\nAnswer\n???';
-            editor.insertText(flashcardTemplate);
-            
-            const currentPos = editor.getState().selection.anchor;
-            const questionLinePos = currentPos - flashcardTemplate.length + 10;
-            editor.setTextSelection({
-              from: questionLinePos,
-              to: questionLinePos,
-            });
-            
-            return true;
-          },
-        }
+      // Use a custom menu configuration for adding the flashcard button
+      custom: {
+        menu: [
+          {
+            type: 'button',
+            id: 'insertFlashcard',
+            icon: '📝',
+            tooltip: 'Add Flashcard',
+            handler: (editor) => {
+              const flashcardTemplate = '???\nQuestion\n---\nAnswer\n???';
+              editor.insertText(flashcardTemplate);
+              
+              const currentPos = editor.getState().selection.anchor;
+              const questionLinePos = currentPos - flashcardTemplate.length + 10;
+              editor.setTextSelection({
+                from: questionLinePos,
+                to: questionLinePos,
+              });
+              
+              return true;
+            },
+          }
+        ]
       }
     });
 
