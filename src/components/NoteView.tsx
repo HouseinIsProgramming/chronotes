@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -6,7 +5,7 @@ import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Crepe } from "@milkdown/crepe";
-import { Save } from 'lucide-react';
+import { Save, Feather } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
@@ -67,7 +66,6 @@ export function NoteView({
               .from('notes')
               .update({ 
                 content: markdown || note.content,
-                // Remove the updated_at field since it's not in the type definition
               })
               .eq('id', note.id)
               .eq('user_id', user.id);
@@ -97,6 +95,30 @@ export function NoteView({
       console.log("Save failed - note, onUpdateNote, or crepeRef is null");
     }
   }, [note, onUpdateNote, mode, user]);
+
+  const handleReview = useCallback(async () => {
+    if (note) {
+      onReview(note.id);
+      
+      // If authenticated, also update last_reviewed_at in Supabase
+      if (mode === 'authenticated' && user) {
+        try {
+          const now = new Date().toISOString();
+          const { error } = await supabase
+            .from('notes')
+            .update({ last_reviewed_at: now })
+            .eq('id', note.id)
+            .eq('user_id', user.id);
+            
+          if (error) {
+            console.error("Error updating review time in Supabase:", error);
+          }
+        } catch (error) {
+          console.error("Exception when updating review time:", error);
+        }
+      }
+    }
+  }, [note, onReview, mode, user]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -218,32 +240,6 @@ export function NoteView({
             onSave={value => handleUpdate('title', value)} 
             className="text-2xl font-bold" 
           />
-          <button 
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition" 
-            onClick={async () => {
-              onReview(note.id);
-              
-              // If authenticated, also update last_reviewed_at in Supabase
-              if (mode === 'authenticated' && user) {
-                try {
-                  const now = new Date().toISOString();
-                  const { error } = await supabase
-                    .from('notes')
-                    .update({ last_reviewed_at: now })
-                    .eq('id', note.id)
-                    .eq('user_id', user.id);
-                    
-                  if (error) {
-                    console.error("Error updating review time in Supabase:", error);
-                  }
-                } catch (error) {
-                  console.error("Exception when updating review time:", error);
-                }
-              }
-            }}
-          >
-            Mark as Reviewed
-          </button>
         </div>
 
         <div className="flex items-center space-x-4 text-muted-foreground text-sm">
@@ -258,7 +254,7 @@ export function NoteView({
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
-        <div className="mb-2 flex justify-end">
+        <div className="mb-2 flex justify-end space-x-2">
           <Button 
             variant="outline" 
             size="sm"
@@ -271,6 +267,15 @@ export function NoteView({
             <Save className="h-4 w-4" />
             Save
           </Button>
+          <Button 
+            variant="secondary" 
+            size="sm"
+            onClick={handleReview}
+            className="gap-2"
+          >
+            <Feather className="h-4 w-4" />
+            Mark as Reviewed
+          </Button>
         </div>
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">
           <CardContent className="p-6 h-full">
@@ -282,4 +287,3 @@ export function NoteView({
       </div>
     </div>;
 }
-
