@@ -1,4 +1,3 @@
-
 import { differenceInWeeks } from "date-fns";
 import { KanbanColumn, Note, ReviewPriority } from "@/types";
 import { NoteCard } from "@/components/NoteCard";
@@ -28,7 +27,6 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
     ];
 
     notes.forEach(note => {
-      // If note has a priority, put it in the corresponding column
       if (note.priority) {
         const priorityColumn = columns.find(col => col.priority === note.priority);
         if (priorityColumn) {
@@ -37,21 +35,20 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
         }
       }
 
-      // If no priority, fall back to time-based categorization
       const lastReviewedDate = note.last_reviewed_at 
         ? new Date(note.last_reviewed_at) 
-        : new Date(0); // If never reviewed, use epoch time
-      
+        : new Date(0);
+
       const weeksAgo = differenceInWeeks(new Date(), lastReviewedDate);
       
       if (weeksAgo >= 3) {
-        columns[0].notes.push(note); // High Priority
+        columns[0].notes.push(note);
       } else if (weeksAgo >= 2) {
-        columns[1].notes.push(note); // Medium
+        columns[1].notes.push(note);
       } else if (weeksAgo >= 1) {
-        columns[2].notes.push(note); // Low
+        columns[2].notes.push(note);
       } else {
-        columns[3].notes.push(note); // Reviewed
+        columns[3].notes.push(note);
       }
     });
 
@@ -67,7 +64,6 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
   return (
     <div className={`h-full overflow-auto ${isMobile ? 'p-2' : 'p-4'}`}>
       <div className="h-full flex flex-col gap-4">
-        {/* First row - High Priority */}
         <div className={`
           ${isMobile ? 'w-full' : 'w-full flex-none'}
         `}>
@@ -78,15 +74,19 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
                 <span className="ml-2 opacity-70">({highPriorityColumn.notes.length})</span>
               </div>
               <div className="p-2 flex-1 overflow-y-auto">
-                {highPriorityColumn.notes.map((note) => (
-                  <NoteCard 
-                    key={note.id} 
-                    note={note} 
-                    onClick={() => handleCardClick(note.id)}
-                    onReview={() => onReview(note.id)}
-                    priority={highPriorityColumn.priority}
-                  />
-                ))}
+                <div className={`
+                  ${!isMobile ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-3' : ''}
+                `}>
+                  {highPriorityColumn.notes.map((note) => (
+                    <NoteCard 
+                      key={note.id} 
+                      note={note} 
+                      onClick={() => handleCardClick(note.id)}
+                      onReview={() => onReview(note.id)}
+                      priority={highPriorityColumn.priority}
+                    />
+                  ))}
+                </div>
                 {highPriorityColumn.notes.length === 0 && (
                   <div className="h-24 flex items-center justify-center text-muted-foreground text-sm italic border border-dashed rounded-md m-2">
                     No notes in this category
@@ -97,7 +97,6 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
           )}
         </div>
 
-        {/* Second row - Medium and Low Priority */}
         {!isMobile && (
           <div className="w-full flex gap-4 flex-none">
             {[mediumPriorityColumn, lowPriorityColumn].map((column) => column && (
@@ -114,15 +113,17 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
                   <span className="ml-2 opacity-70">({column.notes.length})</span>
                 </div>
                 <div className="p-2 flex-1 overflow-y-auto">
-                  {column.notes.map((note) => (
-                    <NoteCard 
-                      key={note.id} 
-                      note={note} 
-                      onClick={() => handleCardClick(note.id)}
-                      onReview={() => onReview(note.id)}
-                      priority={column.priority}
-                    />
-                  ))}
+                  <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {column.notes.map((note) => (
+                      <NoteCard 
+                        key={note.id} 
+                        note={note} 
+                        onClick={() => handleCardClick(note.id)}
+                        onReview={() => onReview(note.id)}
+                        priority={column.priority}
+                      />
+                    ))}
+                  </div>
                   {column.notes.length === 0 && (
                     <div className="h-24 flex items-center justify-center text-muted-foreground text-sm italic border border-dashed rounded-md m-2">
                       No notes in this category
@@ -134,7 +135,6 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
           </div>
         )}
 
-        {/* Third row - Reviewed */}
         <div className={`
           ${isMobile ? 'w-full' : 'w-full flex-none'}
         `}>
@@ -145,15 +145,19 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
                 <span className="ml-2 opacity-70">({reviewedColumn.notes.length})</span>
               </div>
               <div className="p-2 flex-1 overflow-y-auto">
-                {reviewedColumn.notes.map((note) => (
-                  <NoteCard 
-                    key={note.id} 
-                    note={note} 
-                    onClick={() => handleCardClick(note.id)}
-                    onReview={() => onReview(note.id)}
-                    priority={reviewedColumn.priority}
-                  />
-                ))}
+                <div className={`
+                  ${!isMobile ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-3' : ''}
+                `}>
+                  {reviewedColumn.notes.map((note) => (
+                    <NoteCard 
+                      key={note.id} 
+                      note={note} 
+                      onClick={() => handleCardClick(note.id)}
+                      onReview={() => onReview(note.id)}
+                      priority={reviewedColumn.priority}
+                    />
+                  ))}
+                </div>
                 {reviewedColumn.notes.length === 0 && (
                   <div className="h-24 flex items-center justify-center text-muted-foreground text-sm italic border border-dashed rounded-md m-2">
                     No notes in this category
@@ -164,7 +168,6 @@ export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }:
           )}
         </div>
 
-        {/* Mobile view - Medium and Low Priority columns */}
         {isMobile && [mediumPriorityColumn, lowPriorityColumn].map((column) => column && (
           <div 
             key={column.priority}
