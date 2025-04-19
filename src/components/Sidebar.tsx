@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut, Zap } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,8 @@ interface SidebarProps {
   folders: FolderType[];
   activeNoteId: string | null;
   onNoteSelect: (noteId: string) => void;
-  viewMode: 'notes' | 'review' | 'flashcards';
-  onViewModeChange: (mode: 'notes' | 'review' | 'flashcards') => void;
+  viewMode: 'notes' | 'review';
+  onViewModeChange: (mode: 'notes' | 'review') => void;
 }
 
 export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewModeChange }: SidebarProps) {
@@ -52,33 +52,22 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   return (
     <div className="w-64 h-full bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="p-2 border-b border-sidebar-border">
-        <div className="flex flex-col bg-sidebar-accent rounded-lg p-1 space-y-1">
+        <div className="flex bg-sidebar-accent rounded-lg p-1">
           <Button
             variant="ghost"
-            className={cn("h-9 rounded-md font-normal justify-start", 
+            className={cn("flex-1 h-9 rounded-md font-normal", 
               viewMode === 'notes' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
             onClick={() => onViewModeChange('notes')}
           >
-            <FileText className="mr-2 h-4 w-4" />
             Notes
           </Button>
           <Button
             variant="ghost"
-            className={cn("h-9 rounded-md font-normal justify-start", 
+            className={cn("flex-1 h-9 rounded-md font-normal", 
               viewMode === 'review' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
             onClick={() => onViewModeChange('review')}
           >
-            <ChevronRight className="mr-2 h-4 w-4" />
             Review
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("h-9 rounded-md font-normal justify-start", 
-              viewMode === 'flashcards' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
-            onClick={() => onViewModeChange('flashcards')}
-          >
-            <Zap className="mr-2 h-4 w-4" />
-            FlashCards
           </Button>
         </div>
       </div>

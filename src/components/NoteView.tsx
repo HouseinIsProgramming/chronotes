@@ -20,44 +20,6 @@ interface NoteViewProps {
   onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
 }
 
-const flashcardStyles = `
-pre[data-language="flashcard"] {
-  background-color: #FEF7CD;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  color: #000;
-  margin: 16px 0;
-}
-
-pre[data-language="flashcard"] code {
-  font-family: inherit;
-  background: none;
-  padding: 0;
-}
-
-.flashcard-container {
-  background-color: #FEF7CD;
-  border: 1px solid #8E9196;
-  border-radius: 8px;
-  padding: 16px;
-  margin: 16px 0;
-}
-
-.flashcard-question {
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.flashcard-separator {
-  border-top: 1px dashed #8E9196;
-  margin: 8px 0;
-}
-
-.flashcard-answer {
-  margin-top: 8px;
-}
-`;
-
 export function NoteView({
   note,
   onReview,
@@ -67,18 +29,8 @@ export function NoteView({
   const editorRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
   const [editorContent, setEditorContent] = useState<string>('');
-  const currentContentRef = useRef<string>('');
+  const currentContentRef = useRef<string>(''); // Use a ref to track the current content
   const { mode, user } = useAuth();
-  
-  useEffect(() => {
-    const styleElement = document.createElement('style');
-    styleElement.textContent = flashcardStyles;
-    document.head.appendChild(styleElement);
-    
-    return () => {
-      document.head.removeChild(styleElement);
-    };
-  }, []);
   
   useEffect(() => {
     if (note && note.last_reviewed_at) {
@@ -101,17 +53,21 @@ export function NoteView({
     
     if (note && onUpdateNote && crepeRef.current) {
       try {
+        // Get markdown directly from Crepe
         const markdown = crepeRef.current.getMarkdown();
         console.log("Markdown content to save:", markdown?.substring(0, 50) + "...");
         
+        // Update note in local state
         onUpdateNote(note.id, { content: markdown || note.content });
         
+        // If authenticated, also save to Supabase
         if (mode === 'authenticated' && user) {
           try {
             const { error } = await supabase
               .from('notes')
               .update({ 
                 content: markdown || note.content,
+                // Remove the updated_at field since it's not in the type definition
               })
               .eq('id', note.id)
               .eq('user_id', user.id);
@@ -133,6 +89,7 @@ export function NoteView({
         console.log("Save operation completed");
       } catch (error) {
         console.error("Error getting markdown from editor:", error);
+        // Fallback to current content ref if direct method fails
         onUpdateNote(note.id, { content: currentContentRef.current });
         toast("Note saved (fallback method)");
       }
@@ -170,41 +127,20 @@ export function NoteView({
     
     const element = editorRef.current;
     
+    // Create the Crepe editor without the onChange property
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
     });
 
+    // Set up the change tracking after the editor is created
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
+      // Set initial content
       currentContentRef.current = note.content || '';
       
       if (crepeRef.current) {
-        // Add flashcard slash command after editor is created
-        try {
-          crepeRef.current.editor.slashMenu.addItem({
-            id: 'flashcard',
-            content: '🧠 Flashcard',
-            description: 'Insert a flashcard block',
-            handler: () => {
-              const flashcardTemplate = [
-                '```flashcard',
-                '## title',
-                '',
-                '## front side',
-                '',
-                'backside',
-                '',
-                '```flashcardend'
-              ].join('\n');
-              
-              crepeRef.current?.editor.insertText(flashcardTemplate);
-            }
-          });
-        } catch (error) {
-          console.error("Error adding slash command:", error);
-        }
-        
+        // Setup a MutationObserver to track content changes
         const editorContainer = element;
         const observer = new MutationObserver(() => {
           if (crepeRef.current) {
@@ -214,26 +150,20 @@ export function NoteView({
                 currentContentRef.current = markdown;
                 console.log("Editor content changed:", markdown.substring(0, 50) + "...");
               }
-              
-              setTimeout(() => {
-                processFlashcardBlocks(editorContainer);
-              }, 100);
             } catch (error) {
               console.error("Error getting markdown during mutation:", error);
             }
           }
         });
         
+        // Observe changes to the editor's DOM
         observer.observe(editorContainer, {
           childList: true,
           subtree: true,
           characterData: true
         });
         
-        setTimeout(() => {
-          processFlashcardBlocks(editorContainer);
-        }, 300);
-        
+        // Add cleanup for the observer
         return () => {
           observer.disconnect();
         };
@@ -243,44 +173,6 @@ export function NoteView({
     return cleanupEditor;
   }, [note?.id, cleanupEditor]);
 
-  const processFlashcardBlocks = (container: HTMLDivElement) => {
-    const codeBlocks = container.querySelectorAll('pre code');
-    
-    codeBlocks.forEach(codeBlock => {
-      const content = codeBlock.textContent || '';
-      if (content.startsWith('???') && content.endsWith('???') && content.includes('---')) {
-        const preElement = codeBlock.parentElement;
-        if (!preElement) return;
-        
-        if (preElement.classList.contains('flashcard-processed')) return;
-        
-        preElement.classList.add('flashcard-processed');
-        
-        const cleanContent = content.replace(/^\?\?\?|\?\?\?$/g, '').trim();
-        const [question, answer] = cleanContent.split('---').map(part => part.trim());
-        
-        const flashcardContainer = document.createElement('div');
-        flashcardContainer.className = 'flashcard-container';
-        
-        const questionElem = document.createElement('div');
-        questionElem.className = 'flashcard-question';
-        questionElem.textContent = question;
-        flashcardContainer.appendChild(questionElem);
-        
-        const separator = document.createElement('div');
-        separator.className = 'flashcard-separator';
-        flashcardContainer.appendChild(separator);
-        
-        const answerElem = document.createElement('div');
-        answerElem.className = 'flashcard-answer';
-        answerElem.textContent = answer;
-        flashcardContainer.appendChild(answerElem);
-        
-        preElement.parentElement?.replaceChild(flashcardContainer, preElement);
-      }
-    });
-  };
-
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
         <p>Select a note to view</p>
@@ -289,13 +181,17 @@ export function NoteView({
 
   const handleUpdate = async (field: keyof Note, value: any) => {
     if (onUpdateNote) {
+      // Update locally
       onUpdateNote(note.id, {
         [field]: value
       });
       
+      // If authenticated, also save to Supabase
       if (mode === 'authenticated' && user) {
         try {
           const updateObject: any = { [field]: value };
+          
+          // Don't include the updated_at field
           
           const { error } = await supabase
             .from('notes')
@@ -327,6 +223,7 @@ export function NoteView({
             onClick={async () => {
               onReview(note.id);
               
+              // If authenticated, also update last_reviewed_at in Supabase
               if (mode === 'authenticated' && user) {
                 try {
                   const now = new Date().toISOString();
@@ -385,3 +282,4 @@ export function NoteView({
       </div>
     </div>;
 }
+

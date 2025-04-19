@@ -1,3 +1,4 @@
+
 export interface Note {
   id: string;
   title: string;
@@ -20,12 +21,4 @@ export interface KanbanColumn {
   title: string;
   priority: ReviewPriority;
   notes: Note[];
-}
-
-export interface FlashCard {
-  id: string;
-  title: string;
-  frontSide: string;
-  backSide: string;
-  noteId: string;
 }
