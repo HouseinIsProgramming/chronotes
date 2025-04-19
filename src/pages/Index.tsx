@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -293,7 +294,7 @@ export default function Index() {
             onViewModeChange={setViewMode}
           />
         ) : (
-          <FlashCardsView />
+          <FlashCardsView notes={allNotes} />
         )}
       </div>
     </div>
