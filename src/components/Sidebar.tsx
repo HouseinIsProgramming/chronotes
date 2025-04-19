@@ -31,7 +31,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   
   const folderRenameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const toggleFolder = (folderId: string) => {
+  const toggleFolder = (folderId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     setExpandedFolders(prev => ({
       ...prev,
       [folderId]: !prev[folderId]
@@ -101,9 +104,10 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
         
         refreshFolders();
         
+        // Delay the note selection to ensure the folders have been refreshed
         setTimeout(() => {
           onNoteSelect(note.id);
-        }, 100);
+        }, 300);
       }
     } catch (error) {
       console.error('Error creating note:', error);
@@ -138,6 +142,30 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
   const handleLoginClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/auth');
+  };
+
+  const handleNoteClick = (noteId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onNoteSelect(noteId);
+  };
+
+  const handleViewModeChange = (mode: 'notes' | 'review', e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onViewModeChange(mode);
+  };
+
+  const handleSettingsOpen = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSettingsOpen(true);
+  };
+
+  const handleSignOut = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    signOut();
   };
 
   useEffect(() => {
@@ -175,10 +203,8 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             variant="ghost"
             className={cn("flex-1 h-9 rounded-md font-normal", 
               viewMode === 'notes' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
-            onClick={(e) => {
-              e.preventDefault();
-              onViewModeChange('notes');
-            }}
+            onClick={(e) => handleViewModeChange('notes', e)}
+            type="button"
           >
             Notes
           </Button>
@@ -186,10 +212,8 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             variant="ghost"
             className={cn("flex-1 h-9 rounded-md font-normal", 
               viewMode === 'review' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
-            onClick={(e) => {
-              e.preventDefault();
-              onViewModeChange('review');
-            }}
+            onClick={(e) => handleViewModeChange('review', e)}
+            type="button"
           >
             Review
           </Button>
@@ -215,10 +239,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             <div key={folder.id} className="mb-1">
               <div 
                 className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer group relative"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleFolder(folder.id);
-                }}
+                onClick={(e) => toggleFolder(folder.id, e)}
                 onMouseEnter={() => {
                   if (folderRenameTimerRef.current) {
                     clearTimeout(folderRenameTimerRef.current);
@@ -297,10 +318,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
                           ? "bg-sidebar-accent font-medium"
                           : "hover:bg-sidebar-accent/50"
                       )}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onNoteSelect(note.id);
-                      }}
+                      onClick={(e) => handleNoteClick(note.id, e)}
                     >
                       <FileText size={14} className="mr-2 text-muted-foreground" />
                       <span className="truncate">{note.title}</span>
@@ -330,10 +348,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
           <Button
             variant="ghost"
             size="icon"
-            onClick={(e) => {
-              e.preventDefault();
-              setSettingsOpen(true);
-            }}
+            onClick={handleSettingsOpen}
             className="h-8 w-8"
             type="button"
           >
@@ -343,10 +358,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
             <Button
               variant="ghost"
               size="icon"
-              onClick={(e) => {
-                e.preventDefault();
-                signOut();
-              }}
+              onClick={handleSignOut}
               className="h-8 w-8 text-muted-foreground hover:text-destructive"
               type="button"
             >

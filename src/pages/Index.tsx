@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -155,6 +156,11 @@ export default function Index() {
     } else if (mode === 'guest') {
       // Use sample data for guest mode
       setFolders(sampleFolders);
+      
+      // Ensure we have a selected note in guest mode
+      if (!activeNoteId && sampleFolders.length > 0 && sampleFolders[0].notes.length > 0) {
+        setActiveNoteId(sampleFolders[0].notes[0].id);
+      }
     }
   }, [mode, user, activeNoteId]);
 
@@ -219,7 +225,8 @@ export default function Index() {
 
   useEffect(() => {
     if (activeNoteId) {
-      setActiveNote(allNotes.find(note => note.id === activeNoteId) || null);
+      const foundNote = allNotes.find(note => note.id === activeNoteId);
+      setActiveNote(foundNote || null);
     } else {
       setActiveNote(null);
     }
