@@ -12,6 +12,10 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@milkdown/core": "^7.3.5",
+    "@milkdown/preset-commonmark": "^7.3.5",
+    "@milkdown/prose": "^7.3.5",
+    "@milkdown/react": "^7.3.5",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",

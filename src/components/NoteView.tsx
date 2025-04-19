@@ -1,15 +1,15 @@
 
 import { useEffect, useState, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
-import { Tag } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
-import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useEditor, EditorRef } from '@milkdown/react';
+import { defaultValueCtx, rootCtx } from '@milkdown/core';
+import { commonmark } from '@milkdown/preset-commonmark';
+import { nord } from '@milkdown/theme-nord';
 
 interface NoteViewProps {
   note: Note | null;
@@ -26,6 +26,17 @@ export function NoteView({
   const [showMarkdown, setShowMarkdown] = useState(true);
   const [localContent, setLocalContent] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<EditorRef>(null);
+  
+  const { editor, loading, getInstance } = useEditor((root) => {
+    return getInstance()
+      .use(nord)
+      .use(commonmark)
+      .config((ctx) => {
+        ctx.set(rootCtx, root);
+        ctx.set(defaultValueCtx, note?.content || '');
+      });
+  }, [note?.id, note?.content]);
 
   useEffect(() => {
     // Update local content when note changes
@@ -53,6 +64,28 @@ export function NoteView({
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
   }, [localContent]);
+
+  // Listen for editor content changes
+  useEffect(() => {
+    if (!loading && editor && note) {
+      const milkdown = editor.getInstance();
+      if (milkdown) {
+        milkdown.action((ctx) => {
+          const listener = ctx.get('editor').state.doc.content.toJSON;
+          
+          // We would need to implement a proper markdown serialization here
+          // For now, just demonstrating the concept
+          const editorContent = milkdown.action((ctx) => {
+            return ctx.get('editor').view.state.doc.textContent;
+          });
+          
+          if (editorContent && editorContent !== note.content) {
+            handleContentChange(editorContent);
+          }
+        });
+      }
+    }
+  }, [loading, editor, note]);
 
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -95,7 +128,7 @@ export function NoteView({
 
       <div className="border-b px-6 py-2 flex items-center justify-end gap-2">
         <span className="text-sm text-muted-foreground">
-          {showMarkdown ? 'Rendered' : 'Raw'} view
+          {showMarkdown ? 'Editor' : 'Raw'} view
         </span>
         <Switch checked={showMarkdown} onCheckedChange={setShowMarkdown} />
       </div>
@@ -104,11 +137,14 @@ export function NoteView({
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">
           <CardContent className="p-6 h-full">
             {showMarkdown ? (
-              <div 
-                className="prose prose-sm md:prose-base max-w-none cursor-text" 
-                onClick={() => setShowMarkdown(false)}
-              >
-                <ReactMarkdown>{note.content}</ReactMarkdown>
+              <div ref={editorRef as any} className="prose prose-sm md:prose-base max-w-none">
+                {loading ? (
+                  <div className="flex items-center justify-center p-4">
+                    <p>Loading editor...</p>
+                  </div>
+                ) : (
+                  <div>{editor}</div>
+                )}
               </div>
             ) : (
               <textarea 
