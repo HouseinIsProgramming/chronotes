@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import { toast } from "sonner";
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NoteViewProps {
   note: Note | null;
@@ -28,6 +30,7 @@ export function NoteView({
   const crepeRef = useRef<Crepe | null>(null);
   const [editorContent, setEditorContent] = useState<string>('');
   const currentContentRef = useRef<string>(''); // Use a ref to track the current content
+  const { mode, user } = useAuth();
   
   useEffect(() => {
     if (note && note.last_reviewed_at) {
@@ -45,19 +48,44 @@ export function NoteView({
     }
   }, [note]);
 
-  const saveNoteContent = useCallback(() => {
+  const saveNoteContent = useCallback(async () => {
     console.log("Attempting to save content...");
     
     if (note && onUpdateNote && crepeRef.current) {
-      // Get markdown directly from Crepe
       try {
-        // Use the markdown getter from Crepe
+        // Get markdown directly from Crepe
         const markdown = crepeRef.current.getMarkdown();
         console.log("Markdown content to save:", markdown?.substring(0, 50) + "...");
         
-        // Save the markdown content
+        // Update note in local state
         onUpdateNote(note.id, { content: markdown || note.content });
-        toast("Note saved");
+        
+        // If authenticated, also save to Supabase
+        if (mode === 'authenticated' && user) {
+          try {
+            const { error } = await supabase
+              .from('notes')
+              .update({ 
+                content: markdown || note.content,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', note.id)
+              .eq('user_id', user.id);
+              
+            if (error) {
+              console.error("Error saving note to Supabase:", error);
+              toast("Failed to sync note: " + error.message);
+            } else {
+              toast("Note saved and synced");
+            }
+          } catch (error) {
+            console.error("Exception when saving to Supabase:", error);
+            toast("Note saved locally only");
+          }
+        } else {
+          toast("Note saved locally");
+        }
+        
         console.log("Save operation completed");
       } catch (error) {
         console.error("Error getting markdown from editor:", error);
@@ -68,7 +96,7 @@ export function NoteView({
     } else {
       console.log("Save failed - note, onUpdateNote, or crepeRef is null");
     }
-  }, [note, onUpdateNote]);
+  }, [note, onUpdateNote, mode, user]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -151,19 +179,68 @@ export function NoteView({
       </div>;
   }
 
-  const handleUpdate = (field: keyof Note, value: any) => {
+  const handleUpdate = async (field: keyof Note, value: any) => {
     if (onUpdateNote) {
+      // Update locally
       onUpdateNote(note.id, {
         [field]: value
       });
+      
+      // If authenticated, also save to Supabase
+      if (mode === 'authenticated' && user) {
+        try {
+          const { error } = await supabase
+            .from('notes')
+            .update({ 
+              [field]: value,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', note.id)
+            .eq('user_id', user.id);
+            
+          if (error) {
+            console.error(`Error saving ${field} to Supabase:`, error);
+            toast(`Failed to sync ${field}: ` + error.message);
+          }
+        } catch (error) {
+          console.error(`Exception when saving ${field} to Supabase:`, error);
+        }
+      }
     }
   };
 
   return <div className="h-full flex flex-col overflow-hidden">
       <div className="p-6 border-b space-y-4">
         <div className="flex items-center justify-between">
-          <EditableContent value={note.title} onSave={value => handleUpdate('title', value)} className="text-2xl font-bold" />
-          <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition" onClick={() => onReview(note.id)}>
+          <EditableContent 
+            value={note.title} 
+            onSave={value => handleUpdate('title', value)} 
+            className="text-2xl font-bold" 
+          />
+          <button 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition" 
+            onClick={async () => {
+              onReview(note.id);
+              
+              // If authenticated, also update last_reviewed_at in Supabase
+              if (mode === 'authenticated' && user) {
+                try {
+                  const now = new Date().toISOString();
+                  const { error } = await supabase
+                    .from('notes')
+                    .update({ last_reviewed_at: now })
+                    .eq('id', note.id)
+                    .eq('user_id', user.id);
+                    
+                  if (error) {
+                    console.error("Error updating review time in Supabase:", error);
+                  }
+                } catch (error) {
+                  console.error("Exception when updating review time:", error);
+                }
+              }
+            }}
+          >
             Mark as Reviewed
           </button>
         </div>
