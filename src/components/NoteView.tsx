@@ -66,7 +66,7 @@ export function NoteView({
   const editorRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
   const [editorContent, setEditorContent] = useState<string>('');
-  const currentContentRef = useRef<string>(''); // Use a ref to track the current content
+  const currentContentRef = useRef<string>('');
   const { mode, user } = useAuth();
   
   useEffect(() => {
@@ -172,26 +172,26 @@ export function NoteView({
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      commands: {
-        insertFlashcard: {
-          trigger: '/',
-          keyword: 'flashcard',
-          icon: '🧠',
-          description: 'Insert a flashcard block',
-          action: (editor) => {
-            const flashcardTemplate = [
-              '```flashcard',
-              '## title',
-              '',
-              '## front side',
-              '',
-              'backside',
-              '',
-              '```flashcardend'
-            ].join('\n');
-            
-            editor.insertText(flashcardTemplate);
-            return true;
+      custom: {
+        slash: {
+          'flashcard': {
+            icon: '🧠',
+            description: 'Insert a flashcard block',
+            action: (editor) => {
+              const flashcardTemplate = [
+                '```flashcard',
+                '## title',
+                '',
+                '## front side',
+                '',
+                'backside',
+                '',
+                '```flashcardend'
+              ].join('\n');
+              
+              editor.insertText(flashcardTemplate);
+              return true;
+            }
           }
         }
       }
