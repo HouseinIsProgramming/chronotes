@@ -16,6 +16,11 @@ interface SettingsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Define the interface for the RPC function parameters
+interface CreateDefaultDataParams {
+  user_id_param: string;
+}
+
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -56,9 +61,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
       // Create default data using the existing database function
       const { error: defaultDataError } = await withRetry(() => 
-        supabase.rpc('create_default_data_for_user', {
+        supabase.rpc<void>('create_default_data_for_user', {
           user_id_param: user.id
-        } as { user_id_param: string })
+        } as CreateDefaultDataParams)
       );
 
       if (defaultDataError) throw defaultDataError;
