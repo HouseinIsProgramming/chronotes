@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
+
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
-import { Switch } from '@/components/ui/switch';
 import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,7 +23,9 @@ export function NoteView({
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const editorRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
+  const observerRef = useRef<MutationObserver | null>(null);
 
+  // Update last reviewed text when note changes
   useEffect(() => {
     if (note && note.last_reviewed_at) {
       const distance = formatDistanceToNow(new Date(note.last_reviewed_at), {
@@ -34,6 +36,55 @@ export function NoteView({
       setLastReviewedText('Never reviewed');
     }
   }, [note]);
+
+  // Cleanup function to destroy editor and disconnect observer
+  const cleanupEditor = useCallback(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+    
+    if (crepeRef.current) {
+      crepeRef.current.destroy();
+      crepeRef.current = null;
+    }
+  }, []);
+
+  // Setup editor when note changes
+  useEffect(() => {
+    if (!note || !editorRef.current) return;
+    
+    // Clean up any existing editor before creating a new one
+    cleanupEditor();
+    
+    // Create new editor instance
+    crepeRef.current = new Crepe({
+      root: editorRef.current,
+      defaultValue: note.content || '',
+    });
+
+    // Create and setup the editor
+    crepeRef.current.create().then(() => {
+      console.log("Editor created for note:", note.id);
+      
+      // Setup mutation observer to detect content changes
+      if (editorRef.current && onUpdateNote && note) {
+        observerRef.current = new MutationObserver(() => {
+          const content = editorRef.current?.textContent || '';
+          onUpdateNote(note.id, { content });
+        });
+        
+        observerRef.current.observe(editorRef.current, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+      }
+    });
+
+    // Cleanup on unmount or when note changes
+    return cleanupEditor;
+  }, [note?.id, cleanupEditor, onUpdateNote]);
 
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -48,51 +99,6 @@ export function NoteView({
       });
     }
   };
-
-  const handleContentChange = (value: string) => {
-    handleUpdate('content', value);
-  };
-
-  useEffect(() => {
-    if (note && editorRef.current) {
-      crepeRef.current = new Crepe({
-        root: editorRef.current,
-        defaultValue: note.content || '',
-      });
-
-      crepeRef.current.create().then(() => {
-        console.log("Editor created");
-        
-        // Use a MutationObserver to detect content changes in the editor
-        if (editorRef.current) {
-          const observer = new MutationObserver(() => {
-            if (onUpdateNote && note && crepeRef.current) {
-              // Get content from the editor div
-              const content = editorRef.current?.textContent || '';
-              handleContentChange(content);
-            }
-          });
-          
-          observer.observe(editorRef.current, {
-            childList: true,
-            subtree: true,
-            characterData: true
-          });
-          
-          // Return cleanup function for the observer
-          return () => observer.disconnect();
-        }
-      });
-
-      // Cleanup function
-      return () => {
-        if (crepeRef.current) {
-          crepeRef.current.destroy();
-          crepeRef.current = null;
-        }
-      };
-    }
-  }, [note?.id]);
 
   return <div className="h-full flex flex-col overflow-hidden">
       <div className="p-6 border-b space-y-4">
