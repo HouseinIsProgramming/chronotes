@@ -1,6 +1,13 @@
 
+import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SettingsModalProps {
   open: boolean;
@@ -8,12 +15,34 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const { user } = useAuth();
+
   const toggleTheme = () => {
-    // Toggle between light and dark mode
     const html = document.documentElement;
     const currentTheme = html.classList.contains('dark') ? 'light' : 'dark';
     html.classList.remove('light', 'dark');
     html.classList.add(currentTheme);
+  };
+
+  const handleDeleteAllData = async () => {
+    if (!user) return;
+    
+    try {
+      // Delete all notes and their history for the current user
+      const { error: notesError } = await supabase
+        .from('notes')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (notesError) throw notesError;
+
+      toast.success("All data has been deleted successfully");
+      onOpenChange(false); // Close the settings modal
+    } catch (error) {
+      console.error("Error deleting data:", error);
+      toast.error("Failed to delete data");
+    }
   };
 
   return (
@@ -22,10 +51,47 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="space-y-6 py-2">
           <div className="flex items-center justify-between">
             <span className="text-sm">Dark mode</span>
             <Switch onCheckedChange={toggleTheme} />
+          </div>
+
+          <div className="space-y-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                  Delete All Data
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete all your notes
+                    and their history.
+                    <div className="mt-4 space-y-2">
+                      <p className="font-medium">Type "I understand" to confirm:</p>
+                      <Input 
+                        value={deleteConfirmation}
+                        onChange={(e) => setDeleteConfirmation(e.target.value)}
+                        placeholder="I understand"
+                      />
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAllData}
+                    disabled={deleteConfirmation !== "I understand"}
+                  >
+                    Delete All Data
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </DialogContent>
