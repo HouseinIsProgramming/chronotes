@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Sidebar } from "@/components/Sidebar";
 import { NoteView } from "@/components/NoteView";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { FlashCardsView } from "@/components/FlashCardsView";
 import { Folder, Note } from "@/types";
 import { addDays, subWeeks } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,7 @@ const sampleNotes: Note[] = [
   {
     id: "1",
     title: "Getting Started with Markdown",
-    content: "# Markdown Basics\n\nMarkdown is a lightweight markup language with plain text formatting syntax. It's designed so that it can be converted to HTML and many other formats.\n\n## Basic Syntax\n\n### Headers\n\n# H1\n## H2\n### H3\n\n### Emphasis\n\n*italic* or _italic_\n\n**bold** or __bold__\n\n### Lists\n\nUnordered:\n- Item 1\n- Item 2\n  - Item 2a\n  - Item 2b\n\nOrdered:\n1. Item 1\n2. Item 2\n\n### Links\n\n[Link Text](http://example.com)\n\n### Images\n\n![Alt Text](http://example.com/image.jpg)\n\n### Code\n\nInline `code` has backticks.\n\n```\ncode blocks\ncan be fenced\n```\n\n### Blockquotes\n\n> This is a blockquote.",
+    content: "# Markdown Basics\n\nMarkdown is a lightweight markup language with plain text formatting syntax. It's designed so that it can be converted to HTML and many other formats.\n\n## Basic Syntax\n\n### Headers\n\n# H1\n## H2\n### H3\n\n### Emphasis\n\n*italic* or _italic_\n\n**bold** or __bold__\n\n### Lists\n\nUnordered:\n- Item 1\n- Item 2\n  - Item 2a\n  - Item 2b\n\nOrdered:\n1. Item 1\n2. Item 2\n\n### Links\n\n[Link Text](http://example.com)\n\n### Images\n\n![Alt Text](http://example.com/image.jpg)\n\n### Code\n\nInline `code` has backticks.\n\n```\ncode blocks\ncan be fenced\n```\n\n### Blockquotes\n\n> This is a blockquote.\n\n## Flash Cards Examples\n\n``flash\nCapital of France\n\nWhat is the capital of France?\n\nParis\n``flashed\n\n``flash\nMarkdown Bold Syntax\n\nHow do you make text bold in Markdown?\n\n**text** or __text__\n``flashed",
     tags: ["markdown", "tutorial", "programming"],
     created_at: subWeeks(new Date(), 2).toISOString(),
     last_reviewed_at: subWeeks(new Date(), 2).toISOString(),
@@ -292,10 +293,7 @@ export default function Index() {
             onViewModeChange={setViewMode}
           />
         ) : (
-          <div className="p-4">
-            <h2 className="text-2xl font-bold mb-4">FlashCards</h2>
-            <p className="text-muted-foreground">FlashCards view coming soon...</p>
-          </div>
+          <FlashCardsView />
         )}
       </div>
     </div>
