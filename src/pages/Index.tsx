@@ -129,11 +129,17 @@ export default function Index() {
             return;
           }
 
-          // Organize data into folder structure
+          // Organize data into folder structure with proper type handling for priority
           const userFolders: Folder[] = folderData.map(folder => ({
             id: folder.id,
             name: folder.name,
-            notes: noteData?.filter(note => note.folder_id === folder.id) || []
+            notes: noteData
+              ?.filter(note => note.folder_id === folder.id)
+              .map(note => ({
+                ...note,
+                // Make sure priority is typed correctly
+                priority: note.priority as 'high' | 'medium' | 'low' | undefined
+              })) || []
           }));
 
           if (userFolders.length > 0) {
