@@ -54,18 +54,21 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
       if (foldersError) throw foldersError;
 
-      // Create a default folder instead of using the RPC function that doesn't exist
-      const { error: createFolderError } = await withRetry(() =>
-        supabase
-          .from('folders')
-          .insert({ name: 'Default', user_id: user.id })
+      // Create default data using the existing database function
+      const { error: defaultDataError } = await withRetry(() => 
+        supabase.rpc('create_default_data_for_user', {
+          user_id_param: user.id
+        })
       );
 
-      if (createFolderError) throw createFolderError;
+      if (defaultDataError) throw defaultDataError;
 
       toast.success("All data has been reset to default state");
       onOpenChange(false); // Close the settings modal
-      navigate('/'); // Redirect to default view
+      
+      // Force refresh the page to get the new state
+      window.location.href = '/';
+      
     } catch (error) {
       console.error("Error resetting data:", error);
       toast.error(error instanceof Error ? error.message : "An unknown error occurred");
