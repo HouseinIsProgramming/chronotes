@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { Card, CardContent } from '@/components/ui/card';
-import { useEditor, EditorRef } from '@milkdown/react';
+import { useEditor } from '@milkdown/react';
 import { defaultValueCtx, rootCtx } from '@milkdown/core';
 import { commonmark } from '@milkdown/preset-commonmark';
 import { nord } from '@milkdown/theme-nord';
@@ -26,10 +26,10 @@ export function NoteView({
   const [showMarkdown, setShowMarkdown] = useState(true);
   const [localContent, setLocalContent] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const editorRef = useRef<EditorRef>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   
-  const { editor, loading, getInstance } = useEditor((root) => {
-    return getInstance()
+  const { loading, get } = useEditor((root) => {
+    return get()
       .use(nord)
       .use(commonmark)
       .config((ctx) => {
@@ -67,25 +67,30 @@ export function NoteView({
 
   // Listen for editor content changes
   useEffect(() => {
-    if (!loading && editor && note) {
-      const milkdown = editor.getInstance();
-      if (milkdown) {
-        milkdown.action((ctx) => {
-          const listener = ctx.get('editor').state.doc.content.toJSON;
-          
-          // We would need to implement a proper markdown serialization here
-          // For now, just demonstrating the concept
-          const editorContent = milkdown.action((ctx) => {
-            return ctx.get('editor').view.state.doc.textContent;
-          });
-          
-          if (editorContent && editorContent !== note.content) {
-            handleContentChange(editorContent);
+    if (!loading && get && note) {
+      const editor = get();
+      if (editor) {
+        // We would set up content change listeners here
+        // This is a simplified example - in a real app you'd implement
+        // proper markdown serialization and change detection
+        
+        // Listen for document changes using Milkdown's API
+        setTimeout(() => {
+          const editorRoot = editorRef.current?.querySelector('.milkdown');
+          if (editorRoot) {
+            editorRoot.addEventListener('input', () => {
+              // This is a simple approach - in a real app you'd use Milkdown's API
+              // to properly extract the document content
+              const content = editorRoot.textContent || '';
+              if (content !== note.content) {
+                handleContentChange(content);
+              }
+            });
           }
-        });
+        }, 100);
       }
     }
-  }, [loading, editor, note]);
+  }, [loading, note]);
 
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -137,13 +142,13 @@ export function NoteView({
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">
           <CardContent className="p-6 h-full">
             {showMarkdown ? (
-              <div ref={editorRef as any} className="prose prose-sm md:prose-base max-w-none">
+              <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none">
                 {loading ? (
                   <div className="flex items-center justify-center p-4">
                     <p>Loading editor...</p>
                   </div>
                 ) : (
-                  <div>{editor}</div>
+                  <div className="milkdown-editor-wrapper">{get()?.render()}</div>
                 )}
               </div>
             ) : (
