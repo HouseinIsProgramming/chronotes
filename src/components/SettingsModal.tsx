@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, withRetry } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SettingsModalProps {
@@ -30,18 +30,38 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     
     try {
       // Delete all notes and their history for the current user
-      const { error: notesError } = await supabase
-        .from('notes')
-        .delete()
-        .eq('user_id', user.id);
+      const { error: notesError } = await withRetry(() => 
+        supabase
+          .from('notes')
+          .delete()
+          .eq('user_id', user.id)
+      );
 
       if (notesError) throw notesError;
 
-      toast.success("All data has been deleted successfully");
+      // Delete all folders for the current user
+      const { error: foldersError } = await withRetry(() => 
+        supabase
+          .from('folders')
+          .delete()
+          .eq('user_id', user.id)
+      );
+
+      if (foldersError) throw foldersError;
+
+      // Create default folders and notes
+      const { error: defaultError } = await withRetry(() => 
+        supabase
+          .rpc('create_default_data_for_user', { user_id_param: user.id })
+      );
+
+      if (defaultError) throw defaultError;
+
+      toast.success("All data has been reset to default state");
       onOpenChange(false); // Close the settings modal
     } catch (error) {
-      console.error("Error deleting data:", error);
-      toast.error("Failed to delete data");
+      console.error("Error resetting data:", error);
+      toast.error("Failed to reset data");
     }
   };
 
