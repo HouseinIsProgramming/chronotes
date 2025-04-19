@@ -61,7 +61,20 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+                // Note app specific colors
+                noteapp: {
+                    purple: {
+                        light: '#E5DEFF',
+                        DEFAULT: '#9b87f5',
+                        dark: '#6E59A5',
+                    },
+                    gray: {
+                        light: '#F1F0FB',
+                        medium: '#8E9196',
+                        dark: '#403E43',
+                    },
+                },
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
