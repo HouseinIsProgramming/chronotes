@@ -153,38 +153,46 @@ export function NoteView({
   }, [note, onUpdateNote, mode, user]);
 
   const handleReview = useCallback(async () => {
-    if (note) {
-      // Update priority to null when reviewing
-      if (onUpdateNote) {
-        onUpdateNote(note.id, { priority: null });
-      }
-      
-      onReview(note.id);
-      
-      // If authenticated, also update last_reviewed_at and reset priority in Supabase
-      if (mode === 'authenticated' && user) {
-        try {
-          const now = new Date().toISOString();
-          const { error } = await supabase
-            .from('notes')
-            .update({ 
-              last_reviewed_at: now,
-              priority: null  // Reset priority when reviewed
-            })
-            .eq('id', note.id)
-            .eq('user_id', user.id);
-            
-          if (error) {
-            console.error("Error updating review time in Supabase:", error);
-            toast.error("Failed to mark note as reviewed");
-          } else {
-            toast.success("Note marked as reviewed");
-          }
-        } catch (error) {
-          console.error("Exception when updating review time:", error);
+    if (!note) return;
+
+    console.log("Mark as reviewed clicked for note:", note.id);
+    
+    // First, update the note's priority to null locally
+    if (onUpdateNote) {
+      console.log("Setting priority to null for note:", note.id);
+      onUpdateNote(note.id, { priority: null });
+    }
+    
+    // Then, call the onReview function to update the review timestamp
+    onReview(note.id);
+    
+    // If authenticated, update both last_reviewed_at and priority in Supabase
+    if (mode === 'authenticated' && user) {
+      try {
+        const now = new Date().toISOString();
+        console.log("Updating note in Supabase with priority=null and last_reviewed_at=now");
+        const { error } = await supabase
+          .from('notes')
+          .update({ 
+            last_reviewed_at: now,
+            priority: null  // Explicitly set priority to null when reviewed
+          })
+          .eq('id', note.id)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error("Error updating review time in Supabase:", error);
           toast.error("Failed to mark note as reviewed");
+        } else {
+          toast.success("Note marked as reviewed");
+          console.log("Note successfully marked as reviewed in Supabase");
         }
+      } catch (error) {
+        console.error("Exception when updating review time:", error);
+        toast.error("Failed to mark note as reviewed");
       }
+    } else if (mode === 'guest') {
+      toast.success("Note marked as reviewed");
     }
   }, [note, onReview, onUpdateNote, mode, user]);
 

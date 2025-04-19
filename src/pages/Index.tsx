@@ -256,40 +256,49 @@ export default function Index() {
   };
 
   const handleReview = async (noteId: string) => {
+    console.log("handleReview called in Index.tsx for note:", noteId);
     const now = new Date().toISOString();
     
     const updatedFolders = folders.map(folder => ({
       ...folder,
       notes: folder.notes.map(note => 
         note.id === noteId 
-          ? { ...note, last_reviewed_at: now } 
+          ? { ...note, last_reviewed_at: now, priority: null } 
           : note
       )
     }));
     
     setFolders(updatedFolders);
+    console.log("Updated folders in local state with null priority for note:", noteId);
     
     if (mode === 'authenticated' && user) {
       try {
         const { error } = await withRetry(() => 
           supabase
             .from('notes')
-            .update({ last_reviewed_at: now })
+            .update({ 
+              last_reviewed_at: now,
+              priority: null  // Explicitly set priority to null
+            })
             .eq('id', noteId)
             .eq('user_id', user.id)
         );
           
         if (error) {
-          console.error("Error updating review time:", error);
+          console.error("Error updating review time and priority:", error);
           toast.error("Failed to sync review status");
+        } else {
+          console.log("Successfully updated review time and priority in Supabase");
         }
       } catch (error) {
-        console.error("Exception when updating review time:", error);
+        console.error("Exception when updating review time and priority:", error);
       }
     }
   };
 
   const handleNoteUpdate = async (noteId: string, updates: Partial<Note>) => {
+    console.log("handleNoteUpdate called with:", noteId, updates);
+    
     const updatedFolders = folders.map(folder => ({
       ...folder,
       notes: folder.notes.map(note => 
@@ -300,6 +309,7 @@ export default function Index() {
     }));
     
     setFolders(updatedFolders);
+    console.log("Updated folders in local state with updates for note:", noteId);
   };
 
   return (
