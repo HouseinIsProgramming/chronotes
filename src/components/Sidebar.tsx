@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileText, Settings, LogOut } from 'lucide-react';
-import { Folder as FolderType, Note } from '@/types';
+import { Folder as FolderType } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { SettingsModal } from './SettingsModal';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   folders: FolderType[];
@@ -19,7 +20,8 @@ interface SidebarProps {
 export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewModeChange }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, mode, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => ({
@@ -121,26 +123,49 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
           >
             <Settings className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+          {mode === 'authenticated' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
-        <div className="flex items-center gap-3 px-2 py-2">
-          <Avatar>
-            <AvatarImage src={getAvatarUrl() || ''} />
-            <AvatarFallback>{getUserInitials()}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="text-sm text-muted-foreground">Logged in as</span>
-            <span className="text-sm font-medium truncate">{user?.email}</span>
+        {mode === 'authenticated' ? (
+          <div className="flex items-center gap-3 px-2 py-2">
+            <Avatar>
+              <AvatarImage src={getAvatarUrl() || ''} />
+              <AvatarFallback>{getUserInitials()}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">Logged in as</span>
+              <span className="text-sm font-medium truncate">{user?.email}</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="px-2 py-2">
+            <div className="mb-2 flex items-center gap-2">
+              <Avatar>
+                <AvatarFallback>G</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm text-muted-foreground">Guest mode</span>
+                <span className="text-sm font-medium text-orange-500">No sync</span>
+              </div>
+            </div>
+            <Button 
+              variant="secondary" 
+              className="w-full"
+              onClick={() => navigate('/auth')}
+            >
+              Log in to enable sync
+            </Button>
+          </div>
+        )}
 
         <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       </div>
