@@ -5,6 +5,8 @@ import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Crepe } from "@milkdown/crepe";
+import { Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import { toast } from "sonner";
@@ -25,7 +27,6 @@ export function NoteView({
   const crepeRef = useRef<Crepe | null>(null);
   const markdownContentRef = useRef<string>('');
   
-  // Update last reviewed text when note changes
   useEffect(() => {
     if (note && note.last_reviewed_at) {
       const distance = formatDistanceToNow(new Date(note.last_reviewed_at), {
@@ -36,13 +37,11 @@ export function NoteView({
       setLastReviewedText('Never reviewed');
     }
     
-    // Store the current note content in the ref
     if (note) {
       markdownContentRef.current = note.content || '';
     }
   }, [note]);
 
-  // Save note content
   const saveNoteContent = useCallback(() => {
     if (note && onUpdateNote && markdownContentRef.current !== note.content) {
       onUpdateNote(note.id, { content: markdownContentRef.current });
@@ -50,10 +49,8 @@ export function NoteView({
     }
   }, [note, onUpdateNote]);
 
-  // Setup keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Save on Ctrl+S or Cmd+S
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         saveNoteContent();
@@ -66,7 +63,6 @@ export function NoteView({
     };
   }, [saveNoteContent]);
 
-  // Cleanup editor when component unmounts
   const cleanupEditor = useCallback(() => {
     if (crepeRef.current) {
       crepeRef.current.destroy();
@@ -74,32 +70,24 @@ export function NoteView({
     }
   }, []);
 
-  // Setup editor when note changes
   useEffect(() => {
     if (!note || !editorRef.current) return;
     
-    // Clean up any existing editor before creating a new one
     cleanupEditor();
     
     const element = editorRef.current;
     
-    // Create new editor instance
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
     });
 
-    // Create and setup the editor
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
       
-      // Use a MutationObserver to track changes in the editor content
       const observer = new MutationObserver(() => {
         try {
-          // Extract content from the editor DOM instead of using API methods
           if (crepeRef.current && element.textContent) {
-            // Store the raw markdown from the note content
-            // This is a workaround since we can't directly access the markdown
             markdownContentRef.current = note.content || '';
           }
         } catch (error) {
@@ -113,16 +101,11 @@ export function NoteView({
         characterData: true
       });
       
-      // Add blur event listener to save content when editor loses focus
       element.addEventListener('blur', () => {
-        // When the editor loses focus, we'll extract the content
-        // Since we can't directly get markdown from Crepe API in TypeScript,
-        // we'll keep the original markdown content in our ref
         saveNoteContent();
       });
     });
 
-    // Cleanup on unmount or when note changes
     return cleanupEditor;
   }, [note?.id, cleanupEditor, saveNoteContent]);
 
@@ -161,6 +144,17 @@ export function NoteView({
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+        <div className="mb-2 flex justify-end">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={saveNoteContent}
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Save
+          </Button>
+        </div>
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">
           <CardContent className="p-6 h-full">
             <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none focus:outline-none">
