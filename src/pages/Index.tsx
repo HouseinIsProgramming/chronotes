@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Sidebar } from "@/components/Sidebar";
@@ -10,7 +9,6 @@ import { addDays, subWeeks } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Mock data for demo purposes (used for guest mode and initial state)
 const sampleNotes: Note[] = [
   {
     id: "1",
@@ -89,130 +87,128 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(false);
   const allNotes = folders.flatMap(folder => folder.notes);
 
-  // Fetch user's folders and notes from Supabase when authenticated
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (mode === 'authenticated' && user) {
-        setIsLoading(true);
-        try {
-          // Fetch folders
-          const { data: folderData, error: folderError } = await supabase
-            .from('folders')
-            .select('*')
-            .eq('user_id', user.id);
-
-          if (folderError) {
-            console.error("Error fetching folders:", folderError);
-            toast("Failed to load folders", {
-              description: folderError.message
-            });
-            return;
-          }
-
-          if (!folderData || folderData.length === 0) {
-            // If no folders found, create default folders for the user
-            await createDefaultFolders(user.id);
-            return; // This will trigger a re-render and call fetchUserData again
-          }
-
-          // Fetch notes
-          const { data: noteData, error: noteError } = await supabase
-            .from('notes')
-            .select('*')
-            .eq('user_id', user.id);
-
-          if (noteError) {
-            console.error("Error fetching notes:", noteError);
-            toast("Failed to load notes", {
-              description: noteError.message
-            });
-            return;
-          }
-
-          // Organize data into folder structure with proper type handling for priority
-          const userFolders: Folder[] = folderData.map(folder => ({
-            id: folder.id,
-            name: folder.name,
-            notes: noteData
-              ?.filter(note => note.folder_id === folder.id)
-              .map(note => ({
-                ...note,
-                // Make sure priority is typed correctly
-                priority: note.priority as 'high' | 'medium' | 'low' | undefined
-              })) || []
-          }));
-
-          if (userFolders.length > 0) {
-            setFolders(userFolders);
-            
-            // Set first note as active if no note is selected
-            if (!activeNoteId && userFolders[0].notes.length > 0) {
-              setActiveNoteId(userFolders[0].notes[0].id);
-            }
-          }
-        } catch (error) {
-          console.error("Error in fetchUserData:", error);
-          toast("Something went wrong loading your data");
-        } finally {
-          setIsLoading(false);
-        }
-      } else if (mode === 'guest') {
-        // Use sample data for guest mode
-        setFolders(sampleFolders);
-      }
-    };
-
-    const createDefaultFolders = async (userId: string) => {
+  const fetchUserData = useCallback(async () => {
+    if (mode === 'authenticated' && user) {
+      setIsLoading(true);
       try {
-        // Create default folders
-        const folderPromises = sampleFolders.map(folder => 
-          supabase
-            .from('folders')
-            .insert({
-              name: folder.name,
-              user_id: userId
-            })
-            .select()
+        // Fetch folders
+        const { data: folderData, error: folderError } = await supabase
+          .from('folders')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (folderError) {
+          console.error("Error fetching folders:", folderError);
+          toast("Failed to load folders", {
+            description: folderError.message
+          });
+          return;
+        }
+
+        if (!folderData || folderData.length === 0) {
+          // If no folders found, create default folders for the user
+          await createDefaultFolders(user.id);
+          return; // This will trigger a re-render and call fetchUserData again
+        }
+
+        // Fetch notes
+        const { data: noteData, error: noteError } = await supabase
+          .from('notes')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (noteError) {
+          console.error("Error fetching notes:", noteError);
+          toast("Failed to load notes", {
+            description: noteError.message
+          });
+          return;
+        }
+
+        // Organize data into folder structure with proper type handling for priority
+        const userFolders: Folder[] = folderData.map(folder => ({
+          id: folder.id,
+          name: folder.name,
+          notes: noteData
+            ?.filter(note => note.folder_id === folder.id)
+            .map(note => ({
+              ...note,
+              // Make sure priority is typed correctly
+              priority: note.priority as 'high' | 'medium' | 'low' | undefined
+            })) || []
+        }));
+
+        if (userFolders.length > 0) {
+          setFolders(userFolders);
+          
+          // Set first note as active if no note is selected
+          if (!activeNoteId && userFolders[0].notes.length > 0) {
+            setActiveNoteId(userFolders[0].notes[0].id);
+          }
+        }
+      } catch (error) {
+        console.error("Error in fetchUserData:", error);
+        toast("Something went wrong loading your data");
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (mode === 'guest') {
+      // Use sample data for guest mode
+      setFolders(sampleFolders);
+    }
+  }, [mode, user, activeNoteId]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
+
+  const createDefaultFolders = async (userId: string) => {
+    try {
+      // Create default folders
+      const folderPromises = sampleFolders.map(folder => 
+        supabase
+          .from('folders')
+          .insert({
+            name: folder.name,
+            user_id: userId
+          })
+          .select()
+      );
+      
+      const folderResults = await Promise.all(folderPromises);
+      const newFolders = folderResults.map(result => result.data?.[0]).filter(Boolean);
+      
+      // Create sample notes in each folder
+      for (const folder of newFolders) {
+        const sampleFolderNotes = sampleNotes.filter(
+          note => note.folder_id === sampleFolders.find(f => f.name === folder.name)?.id
         );
         
-        const folderResults = await Promise.all(folderPromises);
-        const newFolders = folderResults.map(result => result.data?.[0]).filter(Boolean);
-        
-        // Create sample notes in each folder
-        for (const folder of newFolders) {
-          const sampleFolderNotes = sampleNotes.filter(
-            note => note.folder_id === sampleFolders.find(f => f.name === folder.name)?.id
-          );
-          
-          for (const note of sampleFolderNotes) {
-            await supabase
-              .from('notes')
-              .insert({
-                title: note.title,
-                content: note.content,
-                tags: note.tags,
-                folder_id: folder.id,
-                user_id: userId,
-                created_at: new Date().toISOString(),
-                last_reviewed_at: new Date().toISOString()
-              });
-          }
+        for (const note of sampleFolderNotes) {
+          await supabase
+            .from('notes')
+            .insert({
+              title: note.title,
+              content: note.content,
+              tags: note.tags,
+              folder_id: folder.id,
+              user_id: userId,
+              created_at: new Date().toISOString(),
+              last_reviewed_at: new Date().toISOString()
+            });
         }
-        
-        toast("Created default folders and notes");
-        
-        // Fetch the data again to get the complete structure
-        fetchUserData();
-      } catch (error) {
-        console.error("Error creating default data:", error);
-        toast("Failed to create default data");
       }
-    };
+      
+      toast("Created default folders and notes");
+      
+      // Fetch the data again to get the complete structure
+      fetchUserData();
+    } catch (error) {
+      console.error("Error creating default data:", error);
+      toast("Failed to create default data");
+    }
+  };
 
-    fetchUserData();
-  }, [mode, user]);
-
-  // Set the first note as active by default
   useEffect(() => {
     if (allNotes.length > 0 && !activeNoteId) {
       const firstNoteId = allNotes[0].id;
@@ -221,7 +217,6 @@ export default function Index() {
     }
   }, [allNotes, activeNoteId]);
 
-  // Update active note when ID changes
   useEffect(() => {
     if (activeNoteId) {
       setActiveNote(allNotes.find(note => note.id === activeNoteId) || null);
@@ -303,6 +298,7 @@ export default function Index() {
         onNoteSelect={handleNoteSelect}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        refreshFolders={fetchUserData}
       />
       
       <div className="flex-1 overflow-hidden">

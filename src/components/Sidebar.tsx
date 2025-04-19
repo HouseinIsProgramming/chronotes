@@ -18,9 +18,10 @@ interface SidebarProps {
   onNoteSelect: (noteId: string) => void;
   viewMode: 'notes' | 'review';
   onViewModeChange: (mode: 'notes' | 'review') => void;
+  refreshFolders: () => void;
 }
 
-export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewModeChange }: SidebarProps) {
+export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewModeChange, refreshFolders }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
@@ -56,6 +57,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       if (error) throw error;
       toast.success("Folder created successfully");
       setEditingFolderId(folder.id);
+      refreshFolders();
     } catch (error) {
       console.error('Error creating folder:', error);
       toast.error("Failed to create folder");
@@ -83,7 +85,14 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
 
       if (error) throw error;
       toast.success("Note created successfully");
+      refreshFolders();
+      
       if (note) {
+        setExpandedFolders(prev => ({
+          ...prev,
+          [folderId]: true
+        }));
+        
         onNoteSelect(note.id);
       }
     } catch (error) {
@@ -103,6 +112,7 @@ export function Sidebar({ folders, activeNoteId, onNoteSelect, viewMode, onViewM
       if (error) throw error;
       toast.success("Folder renamed successfully");
       setEditingFolderId(null);
+      refreshFolders();
     } catch (error) {
       console.error('Error renaming folder:', error);
       toast.error("Failed to rename folder");
