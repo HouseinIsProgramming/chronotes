@@ -6,13 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Github, Mail } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function Auth() {
   const { mode, signInWithEmail, signInWithGoogle, signInWithGitHub, signUp, continueAsGuest } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   if (mode) {
     return <Navigate to="/" replace />;
@@ -23,6 +26,14 @@ export default function Auth() {
     setLoading(true);
     try {
       if (isSignUp) {
+        if (password !== confirmPassword) {
+          toast({
+            title: "Error",
+            description: "Passwords do not match",
+            variant: "destructive"
+          });
+          return;
+        }
         await signUp(email, password);
       } else {
         await signInWithEmail(email, password);
@@ -57,6 +68,15 @@ export default function Auth() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
             />
+            {isSignUp && (
+              <Input
+                type="password"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+              />
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               <Mail className="mr-2 h-4 w-4" />
               {isSignUp ? 'Sign Up' : 'Sign In'} with Email
@@ -111,7 +131,10 @@ export default function Auth() {
           <Button
             variant="link"
             className="w-full"
-            onClick={() => setIsSignUp(!isSignUp)}
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setConfirmPassword('');
+            }}
             disabled={loading}
           >
             {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
