@@ -167,30 +167,34 @@ export function NoteView({
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
-      slashCommands: [
-        // Default built-in commands will be added automatically
-        // Add our custom flashcard command
-        {
-          id: 'flashcard',
-          placeholder: 'Create a flashcard',
-          keywords: ['flash', 'card', 'flashcard'],
-          renderer: () => 'Add Flashcard',
-          execute: (editor) => {
-            const flashcardTemplate = '???\nQuestion\n---\nAnswer\n???';
-            editor.insertText(flashcardTemplate);
-            
-            // Position cursor after "Question" line
-            const currentPos = editor.getState().selection.anchor;
-            const questionLinePos = currentPos - flashcardTemplate.length + 10;
-            editor.setTextSelection({
-              from: questionLinePos,
-              to: questionLinePos,
-            });
-            
-            return true;
+      
+      // Custom slash command setup - using toolbar instead of slashCommands
+      toolbar: {
+        items: [
+          // Default built-in commands
+          ...Crepe.defaultToolbarItems,
+          // Add our custom flashcard command
+          {
+            id: 'flashcard',
+            title: 'Add Flashcard',
+            icon: '📝',
+            onClick: (editor) => {
+              const flashcardTemplate = '???\nQuestion\n---\nAnswer\n???';
+              editor.insertText(flashcardTemplate);
+              
+              // Position cursor after "Question" line
+              const currentPos = editor.getState().selection.anchor;
+              const questionLinePos = currentPos - flashcardTemplate.length + 10;
+              editor.setTextSelection({
+                from: questionLinePos,
+                to: questionLinePos,
+              });
+              
+              return true;
+            },
           },
-        },
-      ],
+        ],
+      },
       // Set up custom rendering for flashcards
       remarkPlugins: [
         // Custom remark plugin to handle flashcards
@@ -275,8 +279,8 @@ export function NoteView({
         // Mark as processed
         preElement.classList.add('flashcard-processed');
         
-        // Extract question and answer
-        const cleanContent = content.replace(/^???|???$/g, '').trim();
+        // Extract question and answer - fix the regex pattern
+        const cleanContent = content.replace(/^\?\?\?|\?\?\?$/g, '').trim();
         const [question, answer] = cleanContent.split('---').map(part => part.trim());
         
         // Create flashcard container

@@ -25,7 +25,8 @@ export const parseFlashCards = (content: string | undefined, noteId: string): Fl
   }
   
   // Parse new flashcard format with ??? markers
-  const newFormatRegex = /\?\?\?\s*([\s\S]*?)\s*---\s*([\s\S]*?)\s*\?\?\?/g;
+  // Fix the regex pattern to properly handle the ??? delimiters
+  const newFormatRegex = /\?\?\?([\s\S]*?)---([\s\S]*?)\?\?\?/g;
   let newMatch;
   
   while ((newMatch = newFormatRegex.exec(content)) !== null) {
