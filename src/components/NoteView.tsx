@@ -7,6 +7,7 @@ import { Tag } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
+import { cn } from '@/lib/utils';
 
 interface NoteViewProps {
   note: Note | null;
@@ -90,7 +91,10 @@ export function NoteView({ note, onReview, onUpdateNote }: NoteViewProps) {
             value={note.content}
             onSave={(value) => handleUpdate('content', value)}
             multiline
-            className="font-mono text-sm w-full h-full"
+            className={cn(
+              "font-mono text-sm w-full h-full whitespace-pre-wrap break-words",
+              "border rounded-md p-2 bg-background"
+            )}
           />
         )}
       </div>
