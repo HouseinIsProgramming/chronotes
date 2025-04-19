@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,7 +15,7 @@ interface SettingsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Define the interface for the RPC function parameters
+// Define the interface for the RPC function parameters without being generic
 interface CreateDefaultDataParams {
   user_id_param: string;
 }
@@ -60,10 +59,11 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       if (foldersError) throw foldersError;
 
       // Create default data using the existing database function
+      // Let TypeScript infer the return type and just pass the params directly
       const { error: defaultDataError } = await withRetry(() => 
         supabase.rpc('create_default_data_for_user', {
           user_id_param: user.id
-        })
+        } as CreateDefaultDataParams) // Use type assertion here to ensure correct type matching
       );
 
       if (defaultDataError) throw defaultDataError;
