@@ -5,13 +5,33 @@ import { EditableContent } from '@/components/EditableContent';
 import { TagsEditor } from '@/components/TagsEditor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Crepe } from "@milkdown/crepe";
-import { Save, Feather, Flag, FlagTriangleRight, FlagTriangleLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Save, Trash2, Copy, Flag, FlagTriangleRight, FlagTriangleLeft, Feather } from 'lucide-react';
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
+  MenubarTrigger,
+} from "@/components/ui/menubar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface NoteViewProps {
   note: Note | null;
@@ -30,7 +50,8 @@ export function NoteView({
   const [editorContent, setEditorContent] = useState<string>('');
   const currentContentRef = useRef<string>(''); // Use a ref to track the current content
   const { mode, user } = useAuth();
-  
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   useEffect(() => {
     if (note && note.last_reviewed_at) {
       const distance = formatDistanceToNow(new Date(note.last_reviewed_at), {
@@ -160,6 +181,21 @@ export function NoteView({
     }
   }, [note, onReview, mode, user]);
 
+  const handleDelete = useCallback(() => {
+    if (mode === 'guest') {
+      toast.error("Please log in to delete notes");
+      return;
+    }
+    setShowDeleteDialog(true);
+  }, [mode]);
+
+  const handleCopy = useCallback(() => {
+    if (!note?.content) return;
+    navigator.clipboard.writeText(note.content)
+      .then(() => toast.success("Note content copied to clipboard"))
+      .catch(() => toast.error("Failed to copy note content"));
+  }, [note?.content]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -237,8 +273,8 @@ export function NoteView({
 
   if (!note) {
     return <div className="h-full flex items-center justify-center text-muted-foreground">
-        <p>Select a note to view</p>
-      </div>;
+      <p>Select a note to view</p>
+    </div>;
   }
 
   const handleUpdate = async (field: keyof Note, value: any) => {
@@ -273,84 +309,116 @@ export function NoteView({
   };
 
   return <div className="h-full flex flex-col overflow-hidden">
-      <div className="p-6 border-b space-y-4">
-        <div className="flex items-center justify-between">
-          <EditableContent 
-            value={note.title} 
-            onSave={value => handleUpdate('title', value)} 
-            className="text-2xl font-bold" 
-          />
-        </div>
-
-        <div className="flex items-center space-x-4 text-muted-foreground text-sm">
-          <span>Created {formatDistanceToNow(new Date(note.created_at), {
-            addSuffix: true
-          })}</span>
-          <span>•</span>
-          <span>{lastReviewedText}</span>
-        </div>
-
-        <TagsEditor tags={note.tags} onSave={tags => handleUpdate('tags', tags)} />
+    <div className="p-6 border-b space-y-4">
+      <div className="flex items-center justify-between">
+        <EditableContent 
+          value={note.title} 
+          onSave={value => handleUpdate('title', value)} 
+          className="text-2xl font-bold" 
+        />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
-        <div className="mb-2 flex justify-end space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              console.log("Save button clicked");
-              saveNoteContent();
-            }}
-            className="gap-2"
-          >
-            <Save className="h-4 w-4" />
-            Save
-          </Button>
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={handleReview}
-            className="gap-2"
-          >
-            <Feather className="h-4 w-4" />
-            Mark as Reviewed
-          </Button>
-          <Button 
-            variant={note.priority === 'high' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handlePriorityUpdate('high')}
-            className="gap-2"
-          >
-            <Flag className="h-4 w-4" />
-            High Priority
-          </Button>
-          <Button 
-            variant={note.priority === 'medium' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handlePriorityUpdate('medium')}
-            className="gap-2"
-          >
-            <FlagTriangleRight className="h-4 w-4" />
-            Medium Priority
-          </Button>
-          <Button 
-            variant={note.priority === 'low' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handlePriorityUpdate('low')}
-            className="gap-2"
-          >
-            <FlagTriangleLeft className="h-4 w-4" />
-            Low Priority
-          </Button>
-        </div>
-        <Card className="h-auto bg-[#F1F0FB] shadow-sm">
-          <CardContent className="p-6 h-full">
-            <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none focus:outline-none">
-              {/* Milkdown editor will render here */}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center space-x-4 text-muted-foreground text-sm">
+        <span>Created {formatDistanceToNow(new Date(note.created_at), {
+          addSuffix: true
+        })}</span>
+        <span>•</span>
+        <span>{lastReviewedText}</span>
       </div>
-    </div>;
+
+      <TagsEditor tags={note.tags} onSave={tags => handleUpdate('tags', tags)} />
+    </div>
+
+    <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+      <div className="mb-2">
+        <Menubar className="border-none p-0">
+          <MenubarMenu>
+            <MenubarTrigger className="font-semibold">File</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem onClick={saveNoteContent}>
+                <Save className="mr-2 h-4 w-4" />
+                Save
+              </MenubarItem>
+              <MenubarItem onClick={handleDelete}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </MenubarItem>
+              <MenubarItem onClick={handleCopy}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy Content
+              </MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+
+          <MenubarMenu>
+            <MenubarTrigger className="font-semibold">Priority</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem 
+                onClick={() => handlePriorityUpdate('high')}
+                className={note.priority === 'high' ? 'bg-accent' : ''}
+              >
+                <Flag className="mr-2 h-4 w-4" />
+                High Priority
+              </MenubarItem>
+              <MenubarItem 
+                onClick={() => handlePriorityUpdate('medium')}
+                className={note.priority === 'medium' ? 'bg-accent' : ''}
+              >
+                <FlagTriangleRight className="mr-2 h-4 w-4" />
+                Medium Priority
+              </MenubarItem>
+              <MenubarItem 
+                onClick={() => handlePriorityUpdate('low')}
+                className={note.priority === 'low' ? 'bg-accent' : ''}
+              >
+                <FlagTriangleLeft className="mr-2 h-4 w-4" />
+                Low Priority
+              </MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+
+          <MenubarMenu>
+            <MenubarTrigger onClick={handleReview} className="font-semibold">
+              <Feather className="mr-2 h-4 w-4" />
+              Mark as Reviewed
+            </MenubarTrigger>
+          </MenubarMenu>
+        </Menubar>
+      </div>
+
+      <Card className="h-auto bg-[#F1F0FB] shadow-sm">
+        <CardContent className="p-6 h-full">
+          <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none focus:outline-none">
+            {/* Milkdown editor will render here */}
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the note "{note.title}".
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (note) {
+                  onDelete(note.id);
+                  setShowDeleteDialog(false);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  </div>;
 }
