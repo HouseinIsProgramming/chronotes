@@ -99,14 +99,17 @@ export function NoteView({
   const handlePriorityUpdate = useCallback(async (priority: 'high' | 'medium' | 'low') => {
     if (note && onUpdateNote) {
       try {
+        // If the same priority is clicked, set to null (remove priority)
+        const newPriority = note.priority === priority ? null : priority;
+        
         // Update note in local state
-        onUpdateNote(note.id, { priority });
+        onUpdateNote(note.id, { priority: newPriority });
         
         // If authenticated, also save to Supabase
         if (mode === 'authenticated' && user) {
           const { error } = await supabase
             .from('notes')
-            .update({ priority })
+            .update({ priority: newPriority })
             .eq('id', note.id)
             .eq('user_id', user.id);
             
@@ -114,10 +117,10 @@ export function NoteView({
             console.error("Error updating note priority:", error);
             toast.error("Failed to update note priority");
           } else {
-            toast.success(`Note marked as ${priority} priority`);
+            toast.success(newPriority ? `Note marked as ${newPriority} priority` : 'Priority removed');
           }
         } else {
-          toast.success(`Note marked as ${priority} priority`);
+          toast.success(newPriority ? `Note marked as ${newPriority} priority` : 'Priority removed');
         }
       } catch (error) {
         console.error("Exception when updating note priority:", error);
