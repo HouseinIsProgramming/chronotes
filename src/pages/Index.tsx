@@ -311,6 +311,7 @@ export default function Index() {
             notes={allNotes} 
             onNoteSelect={handleNoteSelect}
             onReview={handleReview}
+            onViewModeChange={setViewMode}
           />
         )}
       </div>

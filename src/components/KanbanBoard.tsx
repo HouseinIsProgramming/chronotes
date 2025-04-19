@@ -1,4 +1,3 @@
-
 import { differenceInWeeks } from "date-fns";
 import { KanbanColumn, Note, ReviewPriority } from "@/types";
 import { NoteCard } from "@/components/NoteCard";
@@ -7,9 +6,15 @@ interface KanbanBoardProps {
   notes: Note[];
   onNoteSelect: (noteId: string) => void;
   onReview: (noteId: string) => void;
+  onViewModeChange: (mode: 'notes' | 'review') => void;
 }
 
-export function KanbanBoard({ notes, onNoteSelect, onReview }: KanbanBoardProps) {
+export function KanbanBoard({ notes, onNoteSelect, onReview, onViewModeChange }: KanbanBoardProps) {
+  const handleCardClick = (noteId: string) => {
+    onNoteSelect(noteId);
+    onViewModeChange('notes');
+  };
+
   const categorizeNotes = (notes: Note[]): KanbanColumn[] => {
     const columns: KanbanColumn[] = [
       { title: "Urgent", priority: "urgent", notes: [] },
@@ -64,7 +69,7 @@ export function KanbanBoard({ notes, onNoteSelect, onReview }: KanbanBoardProps)
                 <NoteCard 
                   key={note.id} 
                   note={note} 
-                  onClick={() => onNoteSelect(note.id)}
+                  onClick={() => handleCardClick(note.id)}
                   onReview={() => onReview(note.id)}
                   priority={column.priority}
                 />
