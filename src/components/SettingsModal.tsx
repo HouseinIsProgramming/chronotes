@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner"; // Updated import to use Sonner's toast
 import { supabase, withRetry } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -61,7 +60,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       onOpenChange(false); // Close the settings modal
     } catch (error) {
       console.error("Error resetting data:", error);
-      // Use toast with description to provide more flexibility
       toast.error("Failed to reset data", {
         description: error instanceof Error ? error.message : "An unknown error occurred"
       });
