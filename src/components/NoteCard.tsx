@@ -19,7 +19,7 @@ export function NoteCard({ note, onClick, onReview, priority }: NoteCardProps) {
 
   const getPriorityStyle = (priority: ReviewPriority) => {
     switch (priority) {
-      case "urgent":
+      case "high":
         return "border-l-4 border-l-red-400";
       case "medium":
         return "border-l-4 border-l-amber-400";
