@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { Note } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -22,14 +21,40 @@ export function NoteView({
   onUpdateNote
 }: NoteViewProps) {
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
-  const [showMarkdown, setShowMarkdown] = useState(true);
-  const [localContent, setLocalContent] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
 
   useEffect(() => {
-    if (note && showMarkdown && editorRef.current) {
+    if (note && note.last_reviewed_at) {
+      const distance = formatDistanceToNow(new Date(note.last_reviewed_at), {
+        addSuffix: true
+      });
+      setLastReviewedText(`Last reviewed ${distance}`);
+    } else {
+      setLastReviewedText('Never reviewed');
+    }
+  }, [note]);
+
+  if (!note) {
+    return <div className="h-full flex items-center justify-center text-muted-foreground">
+        <p>Select a note to view</p>
+      </div>;
+  }
+
+  const handleUpdate = (field: keyof Note, value: any) => {
+    if (onUpdateNote) {
+      onUpdateNote(note.id, {
+        [field]: value
+      });
+    }
+  };
+
+  const handleContentChange = (value: string) => {
+    handleUpdate('content', value);
+  };
+
+  useEffect(() => {
+    if (note && editorRef.current) {
       crepeRef.current = new Crepe({
         root: editorRef.current,
         defaultValue: note.content || '',
@@ -67,53 +92,7 @@ export function NoteView({
         }
       };
     }
-  }, [note?.id, showMarkdown]);
-
-  useEffect(() => {
-    // Update local content when note changes
-    if (note) {
-      setLocalContent(note.content);
-    }
   }, [note?.id]);
-
-  useEffect(() => {
-    if (note && note.last_reviewed_at) {
-      const distance = formatDistanceToNow(new Date(note.last_reviewed_at), {
-        addSuffix: true
-      });
-      setLastReviewedText(`Last reviewed ${distance}`);
-    } else {
-      setLastReviewedText('Never reviewed');
-    }
-  }, [note]);
-
-  useEffect(() => {
-    // Auto-resize textarea
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${textarea.scrollHeight}px`;
-    }
-  }, [localContent]);
-
-  if (!note) {
-    return <div className="h-full flex items-center justify-center text-muted-foreground">
-        <p>Select a note to view</p>
-      </div>;
-  }
-
-  const handleUpdate = (field: keyof Note, value: any) => {
-    if (onUpdateNote) {
-      onUpdateNote(note.id, {
-        [field]: value
-      });
-    }
-  };
-
-  const handleContentChange = (value: string) => {
-    setLocalContent(value);
-    handleUpdate('content', value);
-  };
 
   return <div className="h-full flex flex-col overflow-hidden">
       <div className="p-6 border-b space-y-4">
@@ -135,36 +114,14 @@ export function NoteView({
         <TagsEditor tags={note.tags} onSave={tags => handleUpdate('tags', tags)} />
       </div>
 
-      <div className="border-b px-6 py-2 flex items-center justify-end gap-2">
-        <span className="text-sm text-muted-foreground">
-          {showMarkdown ? 'Editor' : 'Raw'} view
-        </span>
-        <Switch checked={showMarkdown} onCheckedChange={setShowMarkdown} />
-      </div>
-
       <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
         <Card className="h-auto bg-[#F1F0FB] shadow-sm">
           <CardContent className="p-6 h-full">
-            {showMarkdown ? (
-              <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none">
-                {/* No loading check needed as we handle this with useEffect */}
-                <div className="milkdown-editor-wrapper">
-                  {/* Crepe will render here */}
-                </div>
+            <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none">
+              <div className="milkdown-editor-wrapper">
+                {/* Crepe will render here */}
               </div>
-            ) : (
-              <textarea 
-                ref={textareaRef}
-                value={localContent} 
-                onChange={e => handleContentChange(e.target.value)} 
-                className="font-mono text-sm w-full whitespace-pre-wrap break-words border-none focus-visible:ring-0 p-0 resize-none bg-transparent"
-                style={{
-                  height: `${textareaRef.current?.scrollHeight || 'auto'}px`,
-                  overflow: "hidden"
-                }}
-                rows={20}
-              />
-            )}
+            </div>
           </CardContent>
         </Card>
       </div>
