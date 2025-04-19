@@ -121,6 +121,19 @@ export default function Index() {
     setFolders(updatedFolders);
   };
 
+  const handleNoteUpdate = (noteId: string, updates: Partial<Note>) => {
+    const updatedFolders = folders.map(folder => ({
+      ...folder,
+      notes: folder.notes.map(note => 
+        note.id === noteId 
+          ? { ...note, ...updates }
+          : note
+      )
+    }));
+    
+    setFolders(updatedFolders);
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar 
@@ -133,7 +146,11 @@ export default function Index() {
       
       <div className="flex-1 overflow-hidden">
         {viewMode === 'notes' ? (
-          <NoteView note={activeNote} onReview={handleReview} />
+          <NoteView 
+            note={activeNote} 
+            onReview={handleReview}
+            onUpdateNote={handleNoteUpdate}
+          />
         ) : (
           <KanbanBoard 
             notes={allNotes} 
