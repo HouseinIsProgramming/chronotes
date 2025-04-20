@@ -1,9 +1,12 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Folder, Note } from '@/types';
 import { supabase, withRetry } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createDefaultFolders } from '@/utils/folderOperations';
-import { sampleFolders } from '@/sampleData/notes';
+import { sampleFolders, sampleNotes } from '@/sampleData/notes';
+import { welcomeNote } from '@/sampleData/welcome';
+import { initializeDB } from '@/lib/indexedDB';
 
 export const useNotes = (mode: string | null, user: any) => {
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -28,7 +31,13 @@ export const useNotes = (mode: string | null, user: any) => {
             description: folderError.message
           });
           
-          setFolders(sampleFolders);
+          // Create sample folders for authenticated users with IDs
+          const tempFolders: Folder[] = sampleFolders.map(folder => ({
+            id: crypto.randomUUID(),
+            name: folder.name,
+            notes: []
+          }));
+          setFolders(tempFolders);
           return;
         }
 
@@ -81,10 +90,60 @@ export const useNotes = (mode: string | null, user: any) => {
       } catch (error) {
         console.error("Error in fetchUserData:", error);
         toast.error("Something went wrong loading your data");
-        setFolders(sampleFolders);
+        
+        // Create sample folders with IDs for fallback
+        const tempFolders: Folder[] = sampleFolders.map(folder => ({
+          id: crypto.randomUUID(),
+          name: folder.name,
+          notes: []
+        }));
+        setFolders(tempFolders);
       }
     } else if (mode === 'guest') {
-      setFolders(sampleFolders);
+      // For guest mode, we need to convert sampleFolders to include IDs
+      // and transform string note references into actual Note objects
+      try {
+        const db = await initializeDB();
+        const transaction = db.transaction(['folders', 'notes'], 'readonly');
+        const folderStore = transaction.objectStore('folders');
+        const noteStore = transaction.objectStore('notes');
+        
+        const foldersRequest = folderStore.getAll();
+        const notesRequest = noteStore.getAll();
+        
+        const folders = await new Promise<Folder[]>((resolve, reject) => {
+          foldersRequest.onerror = () => reject(foldersRequest.error);
+          notesRequest.onerror = () => reject(notesRequest.error);
+          
+          foldersRequest.onsuccess = () => {
+            notesRequest.onsuccess = () => {
+              const folderData = foldersRequest.result || [];
+              const noteData = notesRequest.result || [];
+              
+              const processedFolders: Folder[] = folderData.map(folder => ({
+                id: folder.id,
+                name: folder.name,
+                notes: noteData.filter(note => note.folder_id === folder.id) || []
+              }));
+              
+              resolve(processedFolders);
+            };
+          };
+        });
+        
+        setFolders(folders.length > 0 ? folders : []);
+        
+      } catch (error) {
+        console.error("Error loading IndexedDB data:", error);
+        
+        // Create fallback sample folders with IDs if IndexedDB fails
+        const tempFolders: Folder[] = sampleFolders.map(folder => ({
+          id: crypto.randomUUID(),
+          name: folder.name,
+          notes: []
+        }));
+        setFolders(tempFolders);
+      }
     }
   }, [mode, user]);
 

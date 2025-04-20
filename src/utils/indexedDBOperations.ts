@@ -29,9 +29,12 @@ export async function generateGuestSampleData() {
 
     // Get all folders to map notes
     const foldersRequest = folderStore.getAll();
-    const folders = await new Promise((resolve) => {
+    const foldersPromise = new Promise<Array<{id: string, name: string}>>((resolve, reject) => {
       foldersRequest.onsuccess = () => resolve(foldersRequest.result);
+      foldersRequest.onerror = () => reject(foldersRequest.error);
     });
+    
+    const folders = await foldersPromise;
 
     // Create notes for each folder
     for (let i = 0; i < folders.length; i++) {
