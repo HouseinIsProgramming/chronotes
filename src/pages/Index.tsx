@@ -181,12 +181,12 @@ export default function Index() {
 
   const createDefaultFolders = async (userId: string) => {
     try {
-      const folderPromises = sampleFolders.map(folder => 
+      const folderPromises = sampleFolders.map(folderData => 
         withRetry(() => 
           supabase
             .from('folders')
             .insert({
-              name: folder.name,
+              name: folderData.name,
               user_id: userId
             })
             .select()
@@ -203,24 +203,46 @@ export default function Index() {
         .filter(Boolean);
       
       for (const folder of newFolders) {
-        const sampleFolderNotes = sampleNotes.filter(
-          note => note.folder_id === sampleFolders.find(f => f.name === folder.name)?.id
-        );
+        const correspondingFolder = sampleFolders.find(f => f.name === folder.name);
         
-        for (const note of sampleFolderNotes) {
-          await withRetry(() => 
-            supabase
-              .from('notes')
-              .insert({
-                title: note.title,
-                content: note.content,
-                tags: note.tags,
-                folder_id: folder.id,
-                user_id: userId,
-                created_at: new Date().toISOString(),
-                last_reviewed_at: new Date().toISOString()
-              })
-          );
+        if (correspondingFolder) {
+          const noteKeysForFolder = correspondingFolder.notes;
+          
+          for (const noteKey of noteKeysForFolder) {
+            if (noteKey === 'welcome') {
+              await withRetry(() => 
+                supabase
+                  .from('notes')
+                  .insert({
+                    title: welcomeNote.title,
+                    content: welcomeNote.content,
+                    tags: welcomeNote.tags,
+                    folder_id: folder.id,
+                    user_id: userId,
+                    created_at: new Date().toISOString(),
+                    last_reviewed_at: new Date().toISOString()
+                  })
+              );
+              continue;
+            }
+            
+            const noteData = sampleNotes[noteKey as keyof typeof sampleNotes];
+            if (noteData) {
+              await withRetry(() => 
+                supabase
+                  .from('notes')
+                  .insert({
+                    title: noteData.title,
+                    content: noteData.content,
+                    tags: noteData.tags,
+                    folder_id: folder.id,
+                    user_id: userId,
+                    created_at: new Date().toISOString(),
+                    last_reviewed_at: new Date().toISOString()
+                  })
+              );
+            }
+          }
         }
       }
       
@@ -235,7 +257,6 @@ export default function Index() {
 
   useEffect(() => {
     if (allNotes.length > 0 && !activeNoteId) {
-      // Find the welcome note if it exists
       const welcomeNote = allNotes.find(note => note.title === "Welcome to NoteFlow");
       const firstNoteId = welcomeNote ? welcomeNote.id : allNotes[0].id;
       setActiveNoteId(firstNoteId);
