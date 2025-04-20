@@ -4,7 +4,7 @@ import { Folder, Note } from '@/types';
 import { supabase, withRetry } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createDefaultFolders } from '@/utils/folderOperations';
-import { sampleFoldersData } from '@/sampleData/notes';
+import { sampleFolders } from '@/sampleData/notes';
 
 export const useNotes = (mode: string | null, user: any) => {
   const [folders, setFolders] = useState<Folder[]>([]);
