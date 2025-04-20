@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,6 +12,7 @@ import { Loader } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Folder } from "@/types";
 import { generateSampleData } from "@/utils/sampleDataGenerator";
+import { welcomeNote } from "@/sampleData/welcome";
 
 interface SettingsModalProps {
   open: boolean;
@@ -54,31 +56,35 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
       if (foldersError) throw foldersError;
       
-      const { data, error: defaultFolderError } = await withRetry(() => 
+      // Create the "Welcome" folder instead of "My Notes"
+      const { data, error: welcomeFolderError } = await withRetry(() => 
         supabase
           .from('folders')
           .insert({ 
-            name: 'My Notes', 
+            name: 'Welcome', 
             user_id: user.id 
           })
           .select()
           .single()
       );
       
-      if (defaultFolderError) throw defaultFolderError;
+      if (welcomeFolderError) throw welcomeFolderError;
       
-      const defaultFolder = data as Folder;
+      const welcomeFolder = data as Folder;
       
-      if (defaultFolder) {
+      if (welcomeFolder) {
+        // Use the welcomeNote from sampleData/welcome.ts
         const { error: welcomeNoteError } = await withRetry(() => 
           supabase
             .from('notes')
             .insert({ 
-              title: 'Welcome to NoteFlow', 
-              content: 'This is your first note. Start writing!',
-              tags: ['welcome'],
+              title: welcomeNote.title, 
+              content: welcomeNote.content,
+              tags: welcomeNote.tags,
               user_id: user.id,
-              folder_id: defaultFolder.id
+              folder_id: welcomeFolder.id,
+              created_at: new Date().toISOString(),
+              last_reviewed_at: new Date().toISOString()
             })
         );
         
