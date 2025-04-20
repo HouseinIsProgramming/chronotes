@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Folder, Note } from '@/types';
 import { supabase, withRetry } from "@/integrations/supabase/client";

@@ -1,150 +1,68 @@
-import { initializeDB } from '@/lib/indexedDB';
-import { sampleFolders, sampleNotes } from '@/sampleData/notes';
-import { welcomeNote } from '@/sampleData/welcome';
-import { toast } from "sonner";
-import { getUniqueNameInList } from './nameUtils';
 
-export async function generateGuestSampleData() {
+import { initializeDB } from '@/lib/indexedDB';
+import { toast } from 'sonner';
+import { Note } from '@/types';
+
+export async function deleteGuestNote(noteId: string): Promise<boolean> {
   try {
     const db = await initializeDB();
+    const transaction = db.transaction(['notes'], 'readwrite');
+    const noteStore = transaction.objectStore('notes');
     
-    // Clear existing data first
-    await clearGuestData();
-
-    // Get existing folder names first
-    const transaction = db.transaction(['folders'], 'readonly');
-    const folderStore = transaction.objectStore('folders');
-    const existingFolders = await new Promise<Array<{name: string}>>((resolve, reject) => {
-      const request = folderStore.getAll();
-      request.onsuccess = () => resolve(request.result);
+    await new Promise<void>((resolve, reject) => {
+      const request = noteStore.delete(noteId);
+      request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
     
-    const existingFolderNames = existingFolders.map(f => f.name);
-
-    // Create transaction for both stores
-    const writeTransaction = db.transaction(['folders', 'notes'], 'readwrite');
-    const writeFolderStore = writeTransaction.objectStore('folders');
-    const noteStore = writeTransaction.objectStore('notes');
-
-    // Create each folder with unique names
-    const folderPromises = sampleFolders.map(folder => {
-      const uniqueFolderName = getUniqueNameInList(folder.name, existingFolderNames);
-      existingFolderNames.push(uniqueFolderName); // Add to list for next iterations
-      
-      const folderId = crypto.randomUUID();
-      return writeFolderStore.add({
-        id: folderId,
-        name: uniqueFolderName
-      });
-    });
-
-    await Promise.all(folderPromises);
-
-    // Get all folders to map notes
-    const foldersRequest = writeFolderStore.getAll();
-    const foldersPromise = new Promise<Array<{id: string, name: string}>>((resolve, reject) => {
-      foldersRequest.onsuccess = () => resolve(foldersRequest.result);
-      foldersRequest.onerror = () => reject(foldersRequest.error);
-    });
-    
-    const folders = await foldersPromise;
-
-    // Create notes for each folder
-    for (let i = 0; i < folders.length; i++) {
-      const folder = folders[i];
-      const sampleFolder = sampleFolders[i];
-
-      // Get existing notes in this folder
-      const existingNotesRequest = noteStore.index('folderId').getAll(folder.id);
-      const existingNotes = await new Promise<Array<{title: string}>>((resolve, reject) => {
-        existingNotesRequest.onsuccess = () => resolve(existingNotesRequest.result);
-        existingNotesRequest.onerror = () => reject(existingNotesRequest.error);
-      });
-      
-      const existingNoteTitles = existingNotes.map(n => n.title);
-
-      for (const noteKey of sampleFolder.notes) {
-        const noteId = crypto.randomUUID();
-        if (noteKey === 'welcome') {
-          const uniqueTitle = getUniqueNameInList(welcomeNote.title, existingNoteTitles);
-          existingNoteTitles.push(uniqueTitle);
-          
-          await noteStore.add({
-            id: noteId,
-            title: uniqueTitle,
-            content: welcomeNote.content,
-            tags: welcomeNote.tags,
-            folder_id: folder.id,
-            created_at: new Date().toISOString(),
-            last_reviewed_at: new Date().toISOString()
-          });
-          continue;
-        }
-
-        const note = sampleNotes[noteKey as keyof typeof sampleNotes];
-        if (note) {
-          const uniqueTitle = getUniqueNameInList(note.title, existingNoteTitles);
-          existingNoteTitles.push(uniqueTitle);
-          
-          await noteStore.add({
-            id: noteId,
-            title: uniqueTitle,
-            content: note.content,
-            tags: note.tags,
-            folder_id: folder.id,
-            created_at: new Date().toISOString(),
-            last_reviewed_at: new Date().toISOString()
-          });
-        }
-      }
-    }
-
-    toast.success("Sample data generated successfully");
+    toast.success("Note deleted successfully");
     return true;
   } catch (error) {
-    console.error("Error generating sample data:", error);
-    toast.error("Failed to generate sample data");
+    console.error('Error deleting guest note:', error);
+    toast.error("Failed to delete note");
     return false;
   }
 }
 
-export async function clearGuestData() {
+export async function deleteGuestFolder(folderId: string): Promise<boolean> {
   try {
     const db = await initializeDB();
-    const transaction = db.transaction(['folders', 'notes'], 'readwrite');
     
-    // Clear both stores
-    await Promise.all([
-      transaction.objectStore('folders').clear(),
-      transaction.objectStore('notes').clear()
-    ]);
-
-    // Create a Welcome folder
-    const welcomeFolderId = crypto.randomUUID();
-    const folderStore = transaction.objectStore('folders');
-    await folderStore.add({
-      id: welcomeFolderId,
-      name: 'Welcome'
+    // First delete all notes in the folder
+    const transaction1 = db.transaction(['notes'], 'readwrite');
+    const noteStore = transaction1.objectStore('notes');
+    const folderIndex = noteStore.index('folderId');
+    
+    const notesRequest = folderIndex.getAll(folderId);
+    const notes = await new Promise<Note[]>((resolve, reject) => {
+      notesRequest.onsuccess = () => resolve(notesRequest.result);
+      notesRequest.onerror = () => reject(notesRequest.error);
     });
-
-    // Add welcome note
-    const noteStore = transaction.objectStore('notes');
-    await noteStore.add({
-      id: crypto.randomUUID(),
-      title: welcomeNote.title,
-      content: welcomeNote.content,
-      tags: welcomeNote.tags,
-      folder_id: welcomeFolderId,
-      created_at: new Date().toISOString(),
-      last_reviewed_at: new Date().toISOString()
+    
+    // Delete each note
+    for (const note of notes) {
+      await new Promise<void>((resolve, reject) => {
+        const deleteRequest = noteStore.delete(note.id);
+        deleteRequest.onsuccess = () => resolve();
+        deleteRequest.onerror = () => reject(deleteRequest.error);
+      });
+    }
+    
+    // Then delete the folder
+    const transaction2 = db.transaction(['folders'], 'readwrite');
+    const folderStore = transaction2.objectStore('folders');
+    
+    await new Promise<void>((resolve, reject) => {
+      const request = folderStore.delete(folderId);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
     });
-
-    toast.success("All data has been reset to default state");
+    
+    toast.success("Folder and its notes deleted successfully");
     return true;
   } catch (error) {
-    console.error("Error clearing data:", error);
-    toast.error("Failed to clear data");
+    console.error('Error deleting guest folder:', error);
+    toast.error("Failed to delete folder");
     return false;
   }
 }

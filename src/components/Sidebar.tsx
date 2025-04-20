@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FolderPlus } from 'lucide-react';
 import { Folder } from '@/types';
@@ -11,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { FolderItem } from './sidebar/FolderItem';
 import { UserSection } from './sidebar/UserSection';
 import { getUniqueNameInList } from '@/utils/nameUtils';
-import { createGuestFolder, createGuestNote } from '@/utils/guestOperations';
+import { createGuestFolder, createGuestNote, renameGuestFolder, renameGuestNote } from '@/utils/guestOperations';
 
 interface SidebarProps {
   folders: Folder[];
@@ -55,11 +56,6 @@ export function Sidebar({
         setEditingFolderId(folderId);
         refreshFolders();
       }
-      return;
-    }
-
-    if (mode === 'guest') {
-      toast.error("Please log in to create folders");
       return;
     }
 
@@ -111,11 +107,6 @@ export function Sidebar({
           onNoteSelect(noteId);
         }, 300);
       }
-      return;
-    }
-
-    if (mode === 'guest') {
-      toast.error("Please log in to create notes");
       return;
     }
 
@@ -172,6 +163,15 @@ export function Sidebar({
   };
 
   const handleRenameFolder = async (folderId: string, newName: string) => {
+    if (mode === 'guest') {
+      const success = await renameGuestFolder(folderId, newName);
+      if (success) {
+        setEditingFolderId(null);
+        refreshFolders();
+      }
+      return;
+    }
+    
     try {
       const { error } = await withRetry(() => 
         supabase
