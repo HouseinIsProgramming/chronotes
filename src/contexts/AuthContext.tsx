@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { initializeDB } from '@/lib/indexedDB';
 import { useToast } from '@/components/ui/use-toast';
+import { generateSampleData } from '@/utils/sampleDataGenerator';
+import { welcomeNote } from '@/sampleData/welcome';
 
 type AuthMode = 'authenticated' | 'guest' | null;
 
@@ -28,10 +30,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setMode(session ? 'authenticated' : null);
+        
+        if (session?.user) {
+          setMode('authenticated');
+          
+          const { data: folders } = await supabase
+            .from('folders')
+            .select('*')
+            .eq('user_id', session.user.id);
+            
+          if (!folders || folders.length === 0) {
+            const { data: welcomeFolder } = await supabase
+              .from('folders')
+              .insert({ 
+                name: 'Welcome', 
+                user_id: session.user.id 
+              })
+              .select()
+              .single();
+              
+            if (welcomeFolder) {
+              await supabase
+                .from('notes')
+                .insert({ 
+                  title: welcomeNote.title, 
+                  content: welcomeNote.content,
+                  tags: welcomeNote.tags,
+                  user_id: session.user.id,
+                  folder_id: welcomeFolder.id,
+                  created_at: new Date().toISOString(),
+                  last_reviewed_at: new Date().toISOString()
+                });
+            }
+          }
+        } else {
+          setMode(null);
+        }
       }
     );
 
@@ -112,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await initializeDB();
       setMode('guest');
+      await generateSampleData('guest');
       toast({ 
         title: "Guest mode activated", 
         description: "Your notes will be stored locally in your browser."
