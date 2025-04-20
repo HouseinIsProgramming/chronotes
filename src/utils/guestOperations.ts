@@ -38,6 +38,46 @@ export async function createGuestFolder(name: string): Promise<string | null> {
   }
 }
 
+export async function createGuestNote(folderId: string, title: string): Promise<string | null> {
+  try {
+    const db = await initializeDB();
+    const transaction = db.transaction(['notes'], 'readwrite');
+    const noteStore = transaction.objectStore('notes');
+    
+    // Get existing note titles in the folder
+    const existingNotes = await new Promise<Note[]>((resolve, reject) => {
+      const request = noteStore.index('folderId').getAll(folderId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    const existingTitles = existingNotes.map(n => n.title);
+    const uniqueTitle = getUniqueNameInList(title, existingTitles);
+    
+    const noteId = crypto.randomUUID();
+    await new Promise<void>((resolve, reject) => {
+      const request = noteStore.add({
+        id: noteId,
+        title: uniqueTitle,
+        content: '',
+        folder_id: folderId,
+        tags: [],
+        created_at: new Date().toISOString(),
+        last_reviewed_at: new Date().toISOString()
+      });
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+
+    toast.success("Note created successfully");
+    return noteId;
+  } catch (error) {
+    console.error('Error creating guest note:', error);
+    toast.error("Failed to create note");
+    return null;
+  }
+}
+
 export async function renameGuestFolder(folderId: string, newName: string): Promise<boolean> {
   try {
     const db = await initializeDB();
@@ -92,45 +132,5 @@ export async function renameGuestFolder(folderId: string, newName: string): Prom
     console.error('Error renaming guest folder:', error);
     toast.error("Failed to rename folder");
     return false;
-  }
-}
-
-export async function createGuestNote(folderId: string, title: string): Promise<string | null> {
-  try {
-    const db = await initializeDB();
-    const transaction = db.transaction(['notes'], 'readwrite');
-    const noteStore = transaction.objectStore('notes');
-    
-    // Get existing note titles in the folder
-    const existingNotes = await new Promise<Note[]>((resolve, reject) => {
-      const request = noteStore.index('folderId').getAll(folderId);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    
-    const existingTitles = existingNotes.map(n => n.title);
-    const uniqueTitle = getUniqueNameInList(title, existingTitles);
-    
-    const noteId = crypto.randomUUID();
-    await new Promise<void>((resolve, reject) => {
-      const request = noteStore.add({
-        id: noteId,
-        title: uniqueTitle,
-        content: '',
-        folder_id: folderId,
-        tags: [],
-        created_at: new Date().toISOString(),
-        last_reviewed_at: new Date().toISOString()
-      });
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-
-    toast.success("Note created successfully");
-    return noteId;
-  } catch (error) {
-    console.error('Error creating guest note:', error);
-    toast.error("Failed to create note");
-    return null;
   }
 }

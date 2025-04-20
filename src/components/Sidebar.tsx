@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FolderPlus } from 'lucide-react';
 import { Folder } from '@/types';
@@ -12,7 +11,8 @@ import { cn } from '@/lib/utils';
 import { FolderItem } from './sidebar/FolderItem';
 import { UserSection } from './sidebar/UserSection';
 import { getUniqueNameInList } from '@/utils/nameUtils';
-import { createGuestFolder, createGuestNote, renameGuestFolder, renameGuestNote } from '@/utils/guestOperations';
+import { createGuestFolder, createGuestNote, renameGuestFolder } from '@/utils/guestOperations';
+import { initializeDB } from '@/lib/indexedDB';
 
 interface SidebarProps {
   folders: Folder[];

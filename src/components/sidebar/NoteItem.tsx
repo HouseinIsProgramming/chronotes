@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, withRetry } from '@/integrations/supabase/client';
-import { renameGuestNote, updateGuestNote } from '@/utils/indexedDBOperations';
+import { updateGuestNote } from '@/utils/indexedDBOperations';
 import { Input } from '@/components/ui/input';
 import {
   ContextMenu,
