@@ -59,6 +59,50 @@ export function useNoteOperations() {
     }
   }, [mode, user]);
 
+  const updateNoteTitle = useCallback(async (
+    note: Note,
+    title: string,
+    onUpdateNote?: (noteId: string, updates: Partial<Note>) => void,
+  ) => {
+    if (!note || title === note.title || !title.trim()) return;
+
+    console.log("Updating note title:", { noteId: note.id, title });
+    
+    // Update note in local state
+    if (onUpdateNote) {
+      onUpdateNote(note.id, { title });
+    }
+
+    try {
+      if (mode === 'guest') {
+        // For guest mode, save to IndexedDB
+        const success = await updateGuestNote(note.id, { title });
+        if (success) {
+          toast.success("Note renamed successfully");
+        } else {
+          toast.error("Failed to rename note");
+        }
+      } else if (mode === 'authenticated' && user) {
+        // For authenticated users, save to Supabase
+        const { error } = await supabase
+          .from('notes')
+          .update({ title })
+          .eq('id', note.id)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error("Error updating note title:", error);
+          toast.error("Failed to update note title");
+        } else {
+          toast.success("Note renamed successfully");
+        }
+      }
+    } catch (error) {
+      console.error("Exception when updating note title:", error);
+      toast.error("Failed to update note title");
+    }
+  }, [mode, user]);
+
   const updateNotePriority = useCallback(async (
     note: Note,
     priority: 'high' | 'medium' | 'low' | null,
@@ -149,6 +193,7 @@ export function useNoteOperations() {
 
   return {
     saveNoteToSupabase,
+    updateNoteTitle,
     updateNotePriority,
     handleNoteReview,
   };

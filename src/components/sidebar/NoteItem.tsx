@@ -73,7 +73,9 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
       try {
         // Use updateGuestNote to update title in IndexedDB
         const success = await updateGuestNote(note.id, { title });
-        if (!success) {
+        if (success) {
+          toast.success("Note renamed successfully");
+        } else {
           setTitle(note.title); // Reset to original title if failed
         }
       } catch (error) {

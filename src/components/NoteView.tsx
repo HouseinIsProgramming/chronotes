@@ -35,7 +35,7 @@ export function NoteView({
   const [lastReviewedText, setLastReviewedText] = useState<string>('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const currentContentRef = useRef<string>('');
-  const { saveNoteToSupabase, updateNotePriority, handleNoteReview } = useNoteOperations();
+  const { saveNoteToSupabase, updateNotePriority, handleNoteReview, updateNoteTitle } = useNoteOperations();
 
   useEffect(() => {
     if (note && note.last_reviewed_at) {
@@ -53,8 +53,12 @@ export function NoteView({
   }, [note]);
 
   const handleUpdate = async (field: keyof Note, value: any) => {
-    if (onUpdateNote && note) {
-      onUpdateNote(note.id, { [field]: value });
+    if (note) {
+      if (field === 'title') {
+        await updateNoteTitle(note, value, onUpdateNote);
+      } else if (onUpdateNote) {
+        onUpdateNote(note.id, { [field]: value });
+      }
     }
   };
 
