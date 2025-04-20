@@ -33,9 +33,9 @@ export function UserSection({ onSettingsOpen }: UserSectionProps) {
     return null;
   };
 
-  const handleLoginClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    navigate('/auth');
+  const handleLoginClick = () => {
+    signOut(); // Sign out of guest mode first
+    navigate('/auth'); // Then navigate to auth page
   };
 
   const handleSignOut = (e: React.MouseEvent) => {
