@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FolderPlus } from 'lucide-react';
 import { Folder } from '@/types';
@@ -11,6 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { FolderItem } from './sidebar/FolderItem';
 import { UserSection } from './sidebar/UserSection';
+import { getUniqueNameInList } from '@/utils/nameUtils';
 
 interface SidebarProps {
   folders: Folder[];
@@ -54,11 +54,14 @@ export function Sidebar({
     }
 
     try {
+      const existingFolderNames = folders.map(f => f.name);
+      const newFolderName = getUniqueNameInList("New Folder", existingFolderNames);
+
       const { data, error } = await withRetry(() => 
         supabase
           .from('folders')
           .insert({
-            name: "New Folder",
+            name: newFolderName,
             user_id: user?.id
           })
           .select()
@@ -94,12 +97,21 @@ export function Sidebar({
         toast.error("Invalid folder selected");
         return;
       }
+
+      const currentFolder = folders.find(f => f.id === folderId);
+      if (!currentFolder) {
+        toast.error("Folder not found");
+        return;
+      }
+
+      const existingNoteTitles = currentFolder.notes.map(n => n.title);
+      const newNoteTitle = getUniqueNameInList("New Note", existingNoteTitles);
       
       const { data, error } = await withRetry(() => 
         supabase
           .from('notes')
           .insert({
-            title: 'New Note',
+            title: newNoteTitle,
             content: '',
             folder_id: folderId,
             user_id: user?.id,
