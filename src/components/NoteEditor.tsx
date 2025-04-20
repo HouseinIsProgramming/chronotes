@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
+import { math } from "@milkdown/plugin-math";
+
 
 interface NoteEditorProps {
   note: Note;
@@ -33,6 +35,7 @@ export function NoteEditor({ note, onContentChange }: NoteEditorProps) {
     crepeRef.current = new Crepe({
       root: element,
       defaultValue: note.content || '',
+       plugins: [math()],
     });
 
     // Set up the change tracking after the editor is created
