@@ -155,19 +155,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const continueAsGuest = async () => {
     try {
+      // Initialize IndexedDB first
       await initializeDB();
+      // Set mode to guest before generating sample data
       setMode('guest');
-      await generateSampleData('guest');
-      toast({ 
-        title: "Guest mode activated", 
-        description: "Your notes will be stored locally in your browser."
-      });
+      // Generate sample data with 'guest' as userId
+      const success = await generateSampleData('guest');
+      
+      if (success) {
+        toast({ 
+          title: "Guest mode activated", 
+          description: "Your notes will be stored locally in your browser."
+        });
+        // Force a refresh of the page to ensure everything loads correctly
+        window.location.reload();
+      } else {
+        setMode(null); // Reset mode if sample data generation failed
+        throw new Error("Failed to generate sample data");
+      }
     } catch (error) {
       toast({ 
         title: "Error initializing guest mode", 
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
       });
+      setMode(null);
       throw error;
     }
   };
@@ -177,6 +189,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
     }
     setMode(null);
+    // Force page reload to clear any cached state
+    window.location.reload();
   };
 
   return (
