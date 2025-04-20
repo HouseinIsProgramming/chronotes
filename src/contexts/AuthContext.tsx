@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -27,11 +28,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    const storedMode = localStorage.getItem('authMode');
+    if (storedMode === 'guest') {
+      setMode('guest');
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setMode(session ? 'authenticated' : null);
+        if (!session) {
+          const storedMode = localStorage.getItem('authMode');
+          if (storedMode === 'guest') {
+            setMode('guest');
+          }
+        }
       }
     );
 
@@ -39,6 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setMode(session ? 'authenticated' : null);
+      if (!session) {
+        const storedMode = localStorage.getItem('authMode');
+        if (storedMode === 'guest') {
+          setMode('guest');
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -111,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const continueAsGuest = async () => {
     try {
       await initializeDB();
+      localStorage.setItem('authMode', 'guest');
       setMode('guest');
       toast({ 
         title: "Guest mode activated", 
@@ -129,6 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     if (mode === 'authenticated') {
       await supabase.auth.signOut();
+    } else if (mode === 'guest') {
+      localStorage.removeItem('authMode');
     }
     setMode(null);
   };

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,17 +55,15 @@ export function UserSection({ onSettingsOpen }: UserSectionProps) {
         >
           <Settings className="h-4 w-4" />
         </Button>
-        {mode === 'authenticated' && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-            type="button"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleSignOut}
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          type="button"
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
       </div>
 
       {mode === 'authenticated' ? (
@@ -80,7 +77,7 @@ export function UserSection({ onSettingsOpen }: UserSectionProps) {
             <span className="text-sm font-medium truncate">{user?.email}</span>
           </div>
         </div>
-      ) : (
+      ) : mode === 'guest' ? (
         <div className="px-2 py-2">
           <div className="mb-2 flex items-center gap-2">
             <Avatar>
@@ -100,7 +97,7 @@ export function UserSection({ onSettingsOpen }: UserSectionProps) {
             Log in to enable sync
           </Button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
