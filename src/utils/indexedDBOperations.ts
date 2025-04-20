@@ -1,3 +1,4 @@
+
 import { initializeDB } from '@/lib/indexedDB';
 import { toast } from 'sonner';
 import { Note, Folder } from '@/types';
@@ -188,11 +189,17 @@ export async function updateGuestNote(noteId: string, updates: Partial<Note>): P
       request.onerror = () => reject(request.error);
     });
     
-    toast.success("Note saved successfully");
+    // Only show success toast for certain operations
+    if (updates.title) {
+      toast.success("Note renamed successfully");
+    } else if (!updates.content) { // Don't show toast for content saves (too frequent)
+      toast.success("Note updated successfully");
+    }
+    
     return true;
   } catch (error) {
     console.error('Error updating guest note:', error);
-    toast.error("Failed to save note");
+    toast.error("Failed to update note");
     return false;
   }
 }

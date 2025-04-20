@@ -1,4 +1,3 @@
-
 import { initializeDB } from '@/lib/indexedDB';
 import { toast } from 'sonner';
 import { getUniqueNameInList } from './nameUtils';
@@ -133,62 +132,5 @@ export async function createGuestNote(folderId: string, title: string): Promise<
     console.error('Error creating guest note:', error);
     toast.error("Failed to create note");
     return null;
-  }
-}
-
-export async function renameGuestNote(noteId: string, newTitle: string, folderId: string): Promise<boolean> {
-  try {
-    const db = await initializeDB();
-    
-    // First get all notes in the same folder to check for duplicate titles
-    const transaction1 = db.transaction(['notes'], 'readonly');
-    const noteStore1 = transaction1.objectStore('notes');
-    
-    const existingNotes = await new Promise<Note[]>((resolve, reject) => {
-      const request = noteStore1.index('folderId').getAll(folderId);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    
-    // Filter out the current note from title checking
-    const otherNoteTitles = existingNotes
-      .filter(n => n.id !== noteId)
-      .map(n => n.title);
-    
-    // Generate a unique title if needed
-    const uniqueTitle = getUniqueNameInList(newTitle, otherNoteTitles);
-    
-    // Now update the note with the unique title
-    const transaction2 = db.transaction(['notes'], 'readwrite');
-    const noteStore2 = transaction2.objectStore('notes');
-    
-    // Get the note to update
-    const note = await new Promise<Note | undefined>((resolve, reject) => {
-      const request = noteStore2.get(noteId);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    
-    if (!note) {
-      toast.error("Note not found");
-      return false;
-    }
-    
-    // Update the note title
-    await new Promise<void>((resolve, reject) => {
-      const request = noteStore2.put({
-        ...note,
-        title: uniqueTitle
-      });
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-    
-    toast.success("Note renamed successfully");
-    return true;
-  } catch (error) {
-    console.error('Error renaming guest note:', error);
-    toast.error("Failed to rename note");
-    return false;
   }
 }

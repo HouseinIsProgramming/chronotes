@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, withRetry } from '@/integrations/supabase/client';
-import { renameGuestNote } from '@/utils/guestOperations';
+import { renameGuestNote, updateGuestNote } from '@/utils/indexedDBOperations';
 import { Input } from '@/components/ui/input';
 import {
   ContextMenu,
@@ -70,9 +70,16 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
     }
 
     if (mode === 'guest') {
-      const success = await renameGuestNote(note.id, title, note.folder_id);
-      if (success) {
-        // The note will be refreshed from IndexedDB when the parent component calls refreshFolders
+      try {
+        // Use updateGuestNote to update title in IndexedDB
+        const success = await updateGuestNote(note.id, { title });
+        if (!success) {
+          setTitle(note.title); // Reset to original title if failed
+        }
+      } catch (error) {
+        console.error('Error renaming guest note:', error);
+        toast.error("Failed to rename note");
+        setTitle(note.title); // Reset to original title
       }
       setIsEditing(false);
       return;

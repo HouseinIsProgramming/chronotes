@@ -6,6 +6,7 @@ import { createDefaultFolders } from '@/utils/folderOperations';
 import { sampleFolders, sampleNotes } from '@/sampleData/notes';
 import { welcomeNote } from '@/sampleData/welcome';
 import { initializeDB } from '@/lib/indexedDB';
+import { updateGuestNote } from '@/utils/indexedDBOperations';
 
 export const useNotes = (mode: string | null, user: any) => {
   const [folders, setFolders] = useState<Folder[]>([]);
