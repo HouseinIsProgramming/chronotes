@@ -1,4 +1,3 @@
-
 export const sampleNotes = {
   markdownBasics: {
     title: "Markdown Basics Guide",
@@ -268,8 +267,8 @@ Promise.all([promise1, promise2])
 
 export const sampleFolders = [
   {
-    name: "Documentation",
-    notes: ["appTutorial"]
+    name: "Welcome",
+    notes: ["welcome"]
   },
   {
     name: "React Essentials",
@@ -284,4 +283,3 @@ export const sampleFolders = [
     notes: ["markdownBasics"]
   }
 ];
-

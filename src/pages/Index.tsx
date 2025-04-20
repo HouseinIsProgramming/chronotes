@@ -233,7 +233,9 @@ export default function Index() {
 
   useEffect(() => {
     if (allNotes.length > 0 && !activeNoteId) {
-      const firstNoteId = allNotes[0].id;
+      // Find the welcome note if it exists
+      const welcomeNote = allNotes.find(note => note.title === "Welcome to NoteFlow");
+      const firstNoteId = welcomeNote ? welcomeNote.id : allNotes[0].id;
       setActiveNoteId(firstNoteId);
       setActiveNote(allNotes.find(note => note.id === firstNoteId) || null);
     }
