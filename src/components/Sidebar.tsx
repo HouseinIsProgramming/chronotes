@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FolderPlus } from 'lucide-react';
 import { Folder } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,19 @@ export function Sidebar({
   onViewModeChange, 
   refreshFolders 
 }: SidebarProps) {
-  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>(() => {
+    const expanded: Record<string, boolean> = {};
+    if (activeNoteId) {
+      const folderWithActiveNote = folders.find(folder => 
+        folder.notes.some(note => note.id === activeNoteId)
+      );
+      if (folderWithActiveNote) {
+        expanded[folderWithActiveNote.id] = true;
+      }
+    }
+    return expanded;
+  });
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const { user, mode } = useAuth();
@@ -253,6 +265,20 @@ export function Sidebar({
       toast.error("Failed to delete note");
     }
   };
+
+  useEffect(() => {
+    if (activeNoteId) {
+      const folderWithActiveNote = folders.find(folder => 
+        folder.notes.some(note => note.id === activeNoteId)
+      );
+      if (folderWithActiveNote) {
+        setExpandedFolders(prev => ({
+          ...prev,
+          [folderWithActiveNote.id]: true
+        }));
+      }
+    }
+  }, [activeNoteId, folders]);
 
   return (
     <div className="w-64 h-full bg-sidebar border-r border-sidebar-border flex flex-col">

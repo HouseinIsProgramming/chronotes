@@ -8,9 +8,13 @@ import { welcomeNote } from '@/sampleData/welcome';
 import { initializeDB } from '@/lib/indexedDB';
 import { updateGuestNote } from '@/utils/indexedDBOperations';
 
+const ACTIVE_NOTE_KEY = 'activeNoteId';
+
 export const useNotes = (mode: string | null, user: any) => {
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(() => {
+    return localStorage.getItem(ACTIVE_NOTE_KEY);
+  });
   const [activeNote, setActiveNote] = useState<Note | null>(null);
 
   const allNotes = folders.flatMap(folder => folder.notes);
@@ -31,7 +35,6 @@ export const useNotes = (mode: string | null, user: any) => {
             description: folderError.message
           });
           
-          // Create sample folders for authenticated users with IDs
           const tempFolders: Folder[] = sampleFolders.map(folder => ({
             id: crypto.randomUUID(),
             name: folder.name,
@@ -91,7 +94,6 @@ export const useNotes = (mode: string | null, user: any) => {
         console.error("Error in fetchUserData:", error);
         toast.error("Something went wrong loading your data");
         
-        // Create sample folders with IDs for fallback
         const tempFolders: Folder[] = sampleFolders.map(folder => ({
           id: crypto.randomUUID(),
           name: folder.name,
@@ -100,8 +102,6 @@ export const useNotes = (mode: string | null, user: any) => {
         setFolders(tempFolders);
       }
     } else if (mode === 'guest') {
-      // For guest mode, we need to convert sampleFolders to include IDs
-      // and transform string note references into actual Note objects
       try {
         const db = await initializeDB();
         const transaction = db.transaction(['folders', 'notes'], 'readonly');
@@ -136,7 +136,6 @@ export const useNotes = (mode: string | null, user: any) => {
       } catch (error) {
         console.error("Error loading IndexedDB data:", error);
         
-        // Create fallback sample folders with IDs if IndexedDB fails
         const tempFolders: Folder[] = sampleFolders.map(folder => ({
           id: crypto.randomUUID(),
           name: folder.name,
@@ -197,33 +196,40 @@ export const useNotes = (mode: string | null, user: any) => {
     setFolders(updatedFolders);
   };
 
+  const handleSetActiveNoteId = useCallback((noteId: string | null) => {
+    if (noteId) {
+      localStorage.setItem(ACTIVE_NOTE_KEY, noteId);
+    } else {
+      localStorage.removeItem(ACTIVE_NOTE_KEY);
+    }
+    setActiveNoteId(noteId);
+  }, []);
+
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
 
   useEffect(() => {
-    if (allNotes.length > 0 && !activeNoteId) {
-      const welcomeNote = allNotes.find(note => note.title === "Welcome to NoteFlow");
-      const firstNoteId = welcomeNote ? welcomeNote.id : allNotes[0].id;
-      setActiveNoteId(firstNoteId);
-      setActiveNote(allNotes.find(note => note.id === firstNoteId) || null);
-    }
-  }, [allNotes, activeNoteId]);
-
-  useEffect(() => {
-    if (activeNoteId) {
-      const foundNote = allNotes.find(note => note.id === activeNoteId);
-      setActiveNote(foundNote || null);
+    if (allNotes.length > 0) {
+      if (activeNoteId && allNotes.some(note => note.id === activeNoteId)) {
+        const foundNote = allNotes.find(note => note.id === activeNoteId);
+        setActiveNote(foundNote || null);
+      } else {
+        const welcomeNote = allNotes.find(note => note.title === "Welcome to NoteFlow");
+        const firstNoteId = welcomeNote ? welcomeNote.id : allNotes[0].id;
+        handleSetActiveNoteId(firstNoteId);
+        setActiveNote(allNotes.find(note => note.id === firstNoteId) || null);
+      }
     } else {
       setActiveNote(null);
     }
-  }, [activeNoteId, allNotes]);
+  }, [allNotes, activeNoteId, handleSetActiveNoteId]);
 
   return {
     folders,
     activeNoteId,
     activeNote,
-    setActiveNoteId,
+    setActiveNoteId: handleSetActiveNoteId,
     handleReview,
     handleNoteUpdate,
     fetchUserData
