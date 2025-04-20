@@ -3,6 +3,7 @@ import { supabase, withRetry } from "@/integrations/supabase/client";
 import { Folder } from "@/types";
 import { toast } from "sonner";
 import { sampleFolders, sampleNotes } from "@/sampleData/notes";
+import { welcomeNote } from "@/sampleData/welcome";
 
 export async function generateSampleData(userId: string) {
   try {
@@ -34,6 +35,15 @@ export async function generateSampleData(userId: string) {
 
       // Get notes that belong to this folder
       const notesToCreate = folder.notes.map(noteKey => {
+        // Special case for welcome note
+        if (noteKey === 'welcome') {
+          return {
+            ...welcomeNote,
+            user_id: userId,
+            folder_id: folderId
+          };
+        }
+        
         const note = sampleNotes[noteKey as keyof typeof sampleNotes];
         return {
           title: note.title,
