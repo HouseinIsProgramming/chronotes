@@ -1,4 +1,3 @@
-
 import { initializeDB } from '@/lib/indexedDB';
 import { toast } from 'sonner';
 import { Note, Folder } from '@/types';
@@ -68,8 +67,6 @@ export async function deleteGuestFolder(folderId: string): Promise<boolean> {
     return false;
   }
 }
-
-// Add the missing functions:
 
 export async function clearGuestData(): Promise<boolean> {
   try {
@@ -160,3 +157,42 @@ export async function generateGuestSampleData(): Promise<boolean> {
   }
 }
 
+export async function updateGuestNote(noteId: string, updates: Partial<Note>): Promise<boolean> {
+  try {
+    const db = await initializeDB();
+    const transaction = db.transaction(['notes'], 'readwrite');
+    const noteStore = transaction.objectStore('notes');
+    
+    // Get existing note
+    const existingNote = await new Promise<Note | undefined>((resolve, reject) => {
+      const request = noteStore.get(noteId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    if (!existingNote) {
+      toast.error("Note not found");
+      return false;
+    }
+    
+    // Update the note with new values
+    const updatedNote = {
+      ...existingNote,
+      ...updates,
+      last_reviewed_at: updates.last_reviewed_at || existingNote.last_reviewed_at,
+    };
+    
+    await new Promise<void>((resolve, reject) => {
+      const request = noteStore.put(updatedNote);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+    
+    toast.success("Note saved successfully");
+    return true;
+  } catch (error) {
+    console.error('Error updating guest note:', error);
+    toast.error("Failed to save note");
+    return false;
+  }
+}

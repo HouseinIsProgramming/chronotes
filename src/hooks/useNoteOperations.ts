@@ -4,6 +4,7 @@ import { Note } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { updateGuestNote } from '@/utils/indexedDBOperations';
 
 export function useNoteOperations() {
   const { mode, user } = useAuth();
@@ -12,43 +13,49 @@ export function useNoteOperations() {
     note: Note,
     content: string,
   ) => {
-    if (mode !== 'authenticated' || !user) return;
+    if (!note) return;
 
     try {
-      const { error: noteError } = await supabase
-        .from('notes')
-        .update({ content })
-        .eq('id', note.id)
-        .eq('user_id', user.id);
-        
-      if (noteError) {
-        console.error("Error saving note to Supabase:", noteError);
-        toast.error("Failed to sync note: " + noteError.message);
-        return;
-      }
+      if (mode === 'guest') {
+        // For guest mode, save to IndexedDB
+        await updateGuestNote(note.id, { content });
+      } else if (mode === 'authenticated' && user) {
+        // For authenticated users, save to Supabase
+        const { error: noteError } = await supabase
+          .from('notes')
+          .update({ content })
+          .eq('id', note.id)
+          .eq('user_id', user.id);
+          
+        if (noteError) {
+          console.error("Error saving note to Supabase:", noteError);
+          toast.error("Failed to sync note: " + noteError.message);
+          return;
+        }
 
-      // Create history snapshot
-      const { error: historyError } = await supabase
-        .from('note_history')
-        .insert({
-          note_id: note.id,
-          user_id: user.id,
-          title: note.title,
-          content: content,
-          tags: note.tags,
-          priority: note.priority,
-          folder_id: note.folder_id
-        });
+        // Create history snapshot
+        const { error: historyError } = await supabase
+          .from('note_history')
+          .insert({
+            note_id: note.id,
+            user_id: user.id,
+            title: note.title,
+            content: content,
+            tags: note.tags,
+            priority: note.priority,
+            folder_id: note.folder_id
+          });
 
-      if (historyError) {
-        console.error("Error creating history snapshot:", historyError);
-        toast.error("Note saved but failed to create history snapshot");
-      } else {
-        toast.success("Note saved with history snapshot");
+        if (historyError) {
+          console.error("Error creating history snapshot:", historyError);
+          toast.error("Note saved but failed to create history snapshot");
+        } else {
+          toast.success("Note saved with history snapshot");
+        }
       }
     } catch (error) {
-      console.error("Exception when saving to Supabase:", error);
-      toast.error("Note saved locally only");
+      console.error("Exception when saving note:", error);
+      toast.error("Failed to save note");
     }
   }, [mode, user]);
 
@@ -65,8 +72,11 @@ export function useNoteOperations() {
         onUpdateNote(note.id, { priority });
       }
       
-      // If authenticated, also save to Supabase
-      if (mode === 'authenticated' && user) {
+      if (mode === 'guest') {
+        // For guest mode, save to IndexedDB
+        await updateGuestNote(note.id, { priority });
+      } else if (mode === 'authenticated' && user) {
+        // For authenticated users, save to Supabase
         const { error } = await supabase
           .from('notes')
           .update({ priority })
@@ -79,8 +89,6 @@ export function useNoteOperations() {
         } else {
           toast.success(priority ? `Note marked as ${priority} priority` : 'Priority removed');
         }
-      } else {
-        toast.success(priority ? `Note marked as ${priority} priority` : 'Priority removed');
       }
     } catch (error) {
       console.error("Exception when updating note priority:", error);
@@ -96,20 +104,27 @@ export function useNoteOperations() {
     if (!note) return;
 
     console.log("Mark as reviewed clicked for note:", note.id);
+    const now = new Date().toISOString();
     
     // First, update the note's priority to null locally
     if (onUpdateNote) {
       console.log("Setting priority to null for note:", note.id);
-      onUpdateNote(note.id, { priority: null });
+      onUpdateNote(note.id, { priority: null, last_reviewed_at: now });
     }
     
     // Then, call the onReview function to update the review timestamp
     onReview(note.id);
     
-    // If authenticated, update both last_reviewed_at and priority in Supabase
-    if (mode === 'authenticated' && user) {
-      try {
-        const now = new Date().toISOString();
+    try {
+      if (mode === 'guest') {
+        // For guest mode, save to IndexedDB
+        await updateGuestNote(note.id, { 
+          last_reviewed_at: now,
+          priority: null
+        });
+        toast.success("Note marked as reviewed");
+      } else if (mode === 'authenticated' && user) {
+        // For authenticated users, save to Supabase
         const { error } = await supabase
           .from('notes')
           .update({ 
@@ -125,12 +140,10 @@ export function useNoteOperations() {
         } else {
           toast.success("Note marked as reviewed");
         }
-      } catch (error) {
-        console.error("Exception when updating review time:", error);
-        toast.error("Failed to mark note as reviewed");
       }
-    } else if (mode === 'guest') {
-      toast.success("Note marked as reviewed");
+    } catch (error) {
+      console.error("Exception when updating review time:", error);
+      toast.error("Failed to mark note as reviewed");
     }
   }, [mode, user]);
 
