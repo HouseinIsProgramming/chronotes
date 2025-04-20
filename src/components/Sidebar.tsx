@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { FolderItem } from './sidebar/FolderItem';
 import { UserSection } from './sidebar/UserSection';
 import { getUniqueNameInList } from '@/utils/nameUtils';
+import { createGuestFolder, createGuestNote } from '@/utils/guestOperations';
 
 interface SidebarProps {
   folders: Folder[];
@@ -48,6 +49,15 @@ export function Sidebar({
     e.preventDefault();
     e.stopPropagation();
     
+    if (mode === 'guest') {
+      const folderId = await createGuestFolder("New Folder");
+      if (folderId) {
+        setEditingFolderId(folderId);
+        refreshFolders();
+      }
+      return;
+    }
+
     if (mode === 'guest') {
       toast.error("Please log in to create folders");
       return;
@@ -87,6 +97,23 @@ export function Sidebar({
     e.preventDefault();
     e.stopPropagation();
     
+    if (mode === 'guest') {
+      const noteId = await createGuestNote(folderId, "New Note");
+      if (noteId) {
+        setExpandedFolders(prev => ({
+          ...prev,
+          [folderId]: true
+        }));
+        
+        refreshFolders();
+        
+        setTimeout(() => {
+          onNoteSelect(noteId);
+        }, 300);
+      }
+      return;
+    }
+
     if (mode === 'guest') {
       toast.error("Please log in to create notes");
       return;
