@@ -9,8 +9,10 @@ import { addDays, subWeeks } from "date-fns";
 import { supabase, withRetry } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SearchCommand } from "@/components/SearchCommand";
+import { sampleNotes, sampleFolders } from "@/sampleData/notes";
+import { welcomeNote } from "@/sampleData/welcome";
 
-const sampleNotes: Note[] = [
+const sampleNotesData: Note[] = [
   {
     id: "1",
     title: "Getting Started with Markdown",
@@ -58,16 +60,16 @@ const sampleNotes: Note[] = [
   }
 ];
 
-const sampleFolders: Folder[] = [
+const sampleFoldersData: Folder[] = [
   {
     id: "1",
     name: "Web Development",
-    notes: sampleNotes.filter(note => note.folder_id === "1"),
+    notes: sampleNotesData.filter(note => note.folder_id === "1"),
   },
   {
     id: "2",
     name: "Frontend Essentials",
-    notes: sampleNotes.filter(note => note.folder_id === "2"),
+    notes: sampleNotesData.filter(note => note.folder_id === "2"),
   }
 ];
 
@@ -103,7 +105,7 @@ export default function Index() {
             description: folderError.message
           });
           
-          setFolders(sampleFolders);
+          setFolders(sampleFoldersData);
           return;
         }
 
@@ -162,13 +164,13 @@ export default function Index() {
       } catch (error) {
         console.error("Error in fetchUserData:", error);
         toast.error("Something went wrong loading your data");
-        setFolders(sampleFolders);
+        setFolders(sampleFoldersData);
       }
     } else if (mode === 'guest') {
-      setFolders(sampleFolders);
+      setFolders(sampleFoldersData);
       
-      if (!activeNoteId && sampleFolders[0]?.notes.length > 0) {
-        setActiveNoteId(sampleFolders[0].notes[0].id);
+      if (!activeNoteId && sampleFoldersData[0]?.notes.length > 0) {
+        setActiveNoteId(sampleFoldersData[0].notes[0].id);
       }
     }
   }, [mode, user, activeNoteId]);
