@@ -107,7 +107,11 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     if (!user) return;
     
     setIsGenerating(true);
-    await generateSampleData(user.id);
+    const success = await generateSampleData(user.id);
+    if (success) {
+      onOpenChange(false);
+      window.location.href = '/';  // This will fully refresh the app state
+    }
     setIsGenerating(false);
   };
 
