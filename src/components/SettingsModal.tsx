@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { Folder } from "@/types";
 import { generateSampleData } from "@/utils/sampleDataGenerator";
 import { welcomeNote } from "@/sampleData/welcome";
+import { generateGuestSampleData, clearGuestData } from '@/utils/indexedDBOperations';
 
 interface SettingsModalProps {
   open: boolean;
@@ -23,7 +23,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { user } = useAuth();
+  const { user, mode } = useAuth();
   const navigate = useNavigate();
 
   const toggleTheme = () => {
@@ -34,6 +34,21 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   };
 
   const handleDeleteAllData = async () => {
+    if (mode === 'guest') {
+      setIsDeleting(true);
+      try {
+        await clearGuestData();
+        onOpenChange(false);
+        window.location.href = '/';
+      } catch (error) {
+        console.error("Error resetting guest data:", error);
+        toast.error("An error occurred while resetting data");
+      } finally {
+        setIsDeleting(false);
+      }
+      return;
+    }
+
     if (!user) return;
     
     setIsDeleting(true);
@@ -104,6 +119,21 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   };
 
   const handleGenerateSampleData = async () => {
+    if (mode === 'guest') {
+      setIsGenerating(true);
+      try {
+        await generateGuestSampleData();
+        onOpenChange(false);
+        window.location.href = '/';
+      } catch (error) {
+        console.error("Error generating guest sample data:", error);
+        toast.error("An error occurred while generating sample data");
+      } finally {
+        setIsGenerating(false);
+      }
+      return;
+    }
+
     if (!user) return;
     
     setIsGenerating(true);

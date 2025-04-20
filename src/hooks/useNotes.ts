@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Folder, Note } from '@/types';
 import { supabase, withRetry } from "@/integrations/supabase/client";
@@ -29,7 +28,7 @@ export const useNotes = (mode: string | null, user: any) => {
             description: folderError.message
           });
           
-          setFolders(sampleFoldersData);
+          setFolders(sampleFolders);
           return;
         }
 
@@ -82,10 +81,10 @@ export const useNotes = (mode: string | null, user: any) => {
       } catch (error) {
         console.error("Error in fetchUserData:", error);
         toast.error("Something went wrong loading your data");
-        setFolders(sampleFoldersData);
+        setFolders(sampleFolders);
       }
     } else if (mode === 'guest') {
-      setFolders(sampleFoldersData);
+      setFolders(sampleFolders);
     }
   }, [mode, user]);
 
