@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { FolderItem } from './sidebar/FolderItem';
 import { UserSection } from './sidebar/UserSection';
 import { getUniqueNameInList } from '@/utils/nameUtils';
-import { createGuestFolder, createGuestNote } from '@/utils/guestOperations';
 
 interface SidebarProps {
   folders: Folder[];
@@ -49,38 +48,34 @@ export function Sidebar({
     e.preventDefault();
     e.stopPropagation();
     
+    if (mode === 'guest') {
+      toast.error("Please log in to create folders");
+      return;
+    }
+
     try {
-      if (mode === 'authenticated') {
-        const existingFolderNames = folders.map(f => f.name);
-        const newFolderName = getUniqueNameInList("New Folder", existingFolderNames);
+      const existingFolderNames = folders.map(f => f.name);
+      const newFolderName = getUniqueNameInList("New Folder", existingFolderNames);
 
-        const { data, error } = await withRetry(() => 
-          supabase
-            .from('folders')
-            .insert({
-              name: newFolderName,
-              user_id: user?.id
-            })
-            .select()
-            .single()
-        );
+      const { data, error } = await withRetry(() => 
+        supabase
+          .from('folders')
+          .insert({
+            name: newFolderName,
+            user_id: user?.id
+          })
+          .select()
+          .single()
+      );
 
-        if (error) throw error;
-        
-        toast.success("Folder created successfully");
-        
-        const folder = data as { id: string } | null;
-        if (folder) {
-          setEditingFolderId(folder.id);
-          refreshFolders(); 
-        }
-      } else if (mode === 'guest') {
-        const newFolder = await createGuestFolder("New Folder");
-        toast.success("Folder created successfully");
-        setEditingFolderId(newFolder.id);
-        refreshFolders();
-      } else {
-        toast.error("Please log in to create folders");
+      if (error) throw error;
+      
+      toast.success("Folder created successfully");
+      
+      const folder = data as { id: string } | null;
+      if (folder) {
+        setEditingFolderId(folder.id);
+        refreshFolders(); 
       }
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -92,57 +87,46 @@ export function Sidebar({
     e.preventDefault();
     e.stopPropagation();
     
+    if (mode === 'guest') {
+      toast.error("Please log in to create notes");
+      return;
+    }
+
     try {
-      if (mode === 'authenticated') {
-        if (!folderId || typeof folderId !== 'string' || !folderId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-          toast.error("Invalid folder selected");
-          return;
-        }
+      if (!folderId || typeof folderId !== 'string' || !folderId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        toast.error("Invalid folder selected");
+        return;
+      }
 
-        const currentFolder = folders.find(f => f.id === folderId);
-        if (!currentFolder) {
-          toast.error("Folder not found");
-          return;
-        }
+      const currentFolder = folders.find(f => f.id === folderId);
+      if (!currentFolder) {
+        toast.error("Folder not found");
+        return;
+      }
 
-        const existingNoteTitles = currentFolder.notes.map(n => n.title);
-        const newNoteTitle = getUniqueNameInList("New Note", existingNoteTitles);
-        
-        const { data, error } = await withRetry(() => 
-          supabase
-            .from('notes')
-            .insert({
-              title: newNoteTitle,
-              content: '',
-              folder_id: folderId,
-              user_id: user?.id,
-              tags: []
-            })
-            .select()
-            .single()
-        );
+      const existingNoteTitles = currentFolder.notes.map(n => n.title);
+      const newNoteTitle = getUniqueNameInList("New Note", existingNoteTitles);
+      
+      const { data, error } = await withRetry(() => 
+        supabase
+          .from('notes')
+          .insert({
+            title: newNoteTitle,
+            content: '',
+            folder_id: folderId,
+            user_id: user?.id,
+            tags: []
+          })
+          .select()
+          .single()
+      );
 
-        if (error) throw error;
-        
-        toast.success("Note created successfully");
-        
-        const note = data as { id: string } | null;
-        if (note) {
-          setExpandedFolders(prev => ({
-            ...prev,
-            [folderId]: true
-          }));
-          
-          refreshFolders();
-          
-          setTimeout(() => {
-            onNoteSelect(note.id);
-          }, 300);
-        }
-      } else if (mode === 'guest') {
-        const newNote = await createGuestNote("New Note", folderId);
-        toast.success("Note created successfully");
-        
+      if (error) throw error;
+      
+      toast.success("Note created successfully");
+      
+      const note = data as { id: string } | null;
+      if (note) {
         setExpandedFolders(prev => ({
           ...prev,
           [folderId]: true
@@ -151,10 +135,8 @@ export function Sidebar({
         refreshFolders();
         
         setTimeout(() => {
-          onNoteSelect(newNote.id);
+          onNoteSelect(note.id);
         }, 300);
-      } else {
-        toast.error("Please log in to create notes");
       }
     } catch (error) {
       console.error('Error creating note:', error);
