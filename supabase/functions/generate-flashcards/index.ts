@@ -16,10 +16,10 @@ serve(async (req) => {
   try {
     const { content } = await req.json()
     
-    // Check if API key is present
-    const apiKey = Deno.env.get('GOOGLE_API_KEY')
+    // Check for API key in multiple possible environment variables
+    const apiKey = Deno.env.get('GEMINI_API_KEY') || Deno.env.get('GOOGLE_API_KEY')
     if (!apiKey) {
-      throw new Error('Google API key not found. Please configure GOOGLE_API_KEY in Supabase Edge Function Secrets.')
+      throw new Error('API key not found. Please configure GEMINI_API_KEY or GOOGLE_API_KEY in Supabase Edge Function Secrets.')
     }
 
     console.log('Sending request to Google Gemini API')
