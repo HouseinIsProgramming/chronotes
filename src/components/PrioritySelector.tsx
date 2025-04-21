@@ -14,8 +14,8 @@ interface PrioritySelectorProps {
 
 export function PrioritySelector({ onPriorityUpdate }: PrioritySelectorProps) {
   const handlePriorityChange = (value: string) => {
-    // Convert "null" string to actual null value
-    const priority = value === "null" ? null : value as 'high' | 'medium' | 'low';
+    // Convert "none" string to actual null value
+    const priority = value === "none" ? null : value as 'high' | 'medium' | 'low';
     onPriorityUpdate(priority);
   };
 
@@ -28,7 +28,7 @@ export function PrioritySelector({ onPriorityUpdate }: PrioritySelectorProps) {
         <SelectItem value="high">High</SelectItem>
         <SelectItem value="medium">Medium</SelectItem>
         <SelectItem value="low">Low</SelectItem>
-        <SelectItem value="null">None</SelectItem>
+        <SelectItem value="none">None</SelectItem>
       </SelectContent>
     </Select>
   );
