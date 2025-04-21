@@ -16,42 +16,41 @@ serve(async (req) => {
   try {
     const { content } = await req.json()
     
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite:generateContent', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
+        'x-goog-api-key': Deno.env.get('GOOGLE_API_KEY')
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a helpful assistant that creates flashcards from note content. 
-              Extract key concepts and create question-answer pairs.
-              Format your response as a JSON array of objects with 'front' and 'back' properties.
-              'front' should be a question or key concept, and 'back' should be the corresponding answer or explanation.
-              Keep each flashcard focused on a single concept.`
-          },
-          {
-            role: 'user',
-            content: `Create flashcards from this content: ${content}`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `Create 5 detailed flashcards from this content. Each flashcard should have a clear question (front) and a comprehensive answer (back). 
+            Format your response as a strict JSON array of objects with 'front' and 'back' properties.
+            Example: [{"front": "What is the main concept?", "back": "Detailed explanation of the concept."}]
+            
+            Content to convert: ${content}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
+        }
+      })
     })
 
-    const data = await openAIResponse.json()
-    const flashcardsText = data.choices[0].message.content
+    const data = await googleResponse.json()
+    
+    // Extract the text from the Google AI response
+    const flashcardsText = data.candidates?.[0]?.content?.parts?.[0]?.text
 
     // Parse the response into JSON
     let flashcards
     try {
       flashcards = JSON.parse(flashcardsText)
     } catch (error) {
-      console.error('Failed to parse OpenAI response:', flashcardsText)
+      console.error('Failed to parse Google AI response:', flashcardsText)
       throw new Error('Failed to parse flashcards from AI response')
     }
 
