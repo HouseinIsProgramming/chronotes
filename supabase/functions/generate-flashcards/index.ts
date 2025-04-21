@@ -16,11 +16,19 @@ serve(async (req) => {
   try {
     const { content } = await req.json()
     
+    // Check if API key is present
+    const apiKey = Deno.env.get('GOOGLE_API_KEY')
+    if (!apiKey) {
+      throw new Error('Google API key not found. Please configure GOOGLE_API_KEY in Supabase Edge Function Secrets.')
+    }
+
+    console.log('Sending request to Google Gemini API')
+    
     const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite:generateContent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': Deno.env.get('GOOGLE_API_KEY')
+        'x-goog-api-key': apiKey
       },
       body: JSON.stringify({
         contents: [{
@@ -39,21 +47,45 @@ serve(async (req) => {
         }
       })
     })
+    
+    if (!googleResponse.ok) {
+      const errorResponse = await googleResponse.text()
+      console.error('Google API returned an error:', googleResponse.status, errorResponse)
+      throw new Error(`Google API error: ${googleResponse.status} - ${errorResponse}`)
+    }
 
     const data = await googleResponse.json()
+    console.log('Google API response received')
     
     // Extract the text from the Google AI response
     const flashcardsText = data.candidates?.[0]?.content?.parts?.[0]?.text
+    
+    if (!flashcardsText) {
+      console.error('No text found in Google AI response', data)
+      throw new Error('Empty response from AI service')
+    }
 
     // Parse the response into JSON
     let flashcards
     try {
-      flashcards = JSON.parse(flashcardsText)
+      // Look for JSON array in the response by finding text between [ and ]
+      const jsonMatch = flashcardsText.match(/\[[\s\S]*\]/)
+      const jsonString = jsonMatch ? jsonMatch[0] : flashcardsText
+      
+      flashcards = JSON.parse(jsonString)
+      
+      // Validate the flashcards structure
+      if (!Array.isArray(flashcards) || !flashcards.every(card => card.front && card.back)) {
+        throw new Error('Invalid flashcards format')
+      }
     } catch (error) {
       console.error('Failed to parse Google AI response:', flashcardsText)
+      console.error('Parse error:', error.message)
       throw new Error('Failed to parse flashcards from AI response')
     }
 
+    console.log(`Successfully generated ${flashcards.length} flashcards`)
+    
     return new Response(JSON.stringify({ flashcards }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
