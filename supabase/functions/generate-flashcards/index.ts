@@ -24,7 +24,8 @@ serve(async (req) => {
 
     console.log('Sending request to Google Gemini API')
     
-    const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite:generateContent', {
+    // Use the correct model name: gemini-2.0-flash instead of gemini-flash-lite
+    const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

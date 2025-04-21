@@ -43,7 +43,17 @@ export function FlashcardGenerator({ note }: FlashcardGeneratorProps) {
         throw new Error(error.message || 'Function invocation failed');
       }
 
-      if (!data || !data.flashcards || !Array.isArray(data.flashcards)) {
+      if (!data) {
+        console.error('Empty response from function');
+        throw new Error('Received empty response from the AI service');
+      }
+
+      if (data.error) {
+        console.error('API error:', data.error);
+        throw new Error(data.error);
+      }
+
+      if (!data.flashcards || !Array.isArray(data.flashcards)) {
         console.error('Unexpected response format:', data);
         throw new Error('Received invalid response from the AI service');
       }
