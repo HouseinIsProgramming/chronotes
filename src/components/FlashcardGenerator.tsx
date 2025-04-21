@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from '@/contexts/AuthContext'; // Assuming you have an AuthContext
 
 interface FlashcardGeneratorProps {
   note: Note;
@@ -21,8 +22,14 @@ export function FlashcardGenerator({ note }: FlashcardGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [flashcards, setFlashcards] = useState<Array<{ front: string; back: string }>>([]);
+  const { user } = useAuth(); // Get the current user
 
   const generateFlashcards = async () => {
+    if (!user) {
+      toast.error('Please log in to generate flashcards');
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-flashcards', {
@@ -36,15 +43,19 @@ export function FlashcardGenerator({ note }: FlashcardGeneratorProps) {
       setShowDialog(true);
 
       // Store flashcards in the database
-      const promises = generatedCards.map(card => 
-        supabase.from('flashcards').insert({
-          note_id: note.id,
-          front: card.front,
-          back: card.back,
-        })
-      );
+      const flashcardInserts = generatedCards.map(card => ({
+        user_id: user.id,
+        note_id: note.id,
+        front: card.front,
+        back: card.back,
+      }));
 
-      await Promise.all(promises);
+      const { error: insertError } = await supabase
+        .from('flashcards')
+        .insert(flashcardInserts);
+
+      if (insertError) throw insertError;
+
       toast.success('Flashcards generated and saved successfully!');
 
     } catch (error) {
@@ -91,3 +102,4 @@ export function FlashcardGenerator({ note }: FlashcardGeneratorProps) {
     </>
   );
 }
+
