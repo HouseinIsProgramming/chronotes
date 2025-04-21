@@ -1,22 +1,15 @@
-
 import { Note } from '@/types';
-import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarTrigger,
-} from "@/components/ui/menubar";
-import { Save, Trash2, Copy, Flag, FlagTriangleRight, FlagTriangleLeft, Feather, History } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from "sonner";
+import { Button } from '@/components/ui/button';
+import { Copy, Save, Trash2, CheckCircle } from 'lucide-react';
+import { PrioritySelector } from './PrioritySelector';
+import { FlashcardGenerator } from './FlashcardGenerator';
 
 interface NoteToolbarProps {
   note: Note;
   onSave: () => void;
   onDelete: () => void;
   onCopy: () => void;
-  onPriorityUpdate: (priority: 'high' | 'medium' | 'low') => void;
+  onPriorityUpdate: (priority: 'high' | 'medium' | 'low' | null) => void;
   onReview: () => void;
 }
 
@@ -28,81 +21,26 @@ export function NoteToolbar({
   onPriorityUpdate,
   onReview
 }: NoteToolbarProps) {
-  const { mode } = useAuth();
-
   return (
-    <Menubar className="border-none p-0">
-      <MenubarMenu>
-        <MenubarTrigger className="font-semibold">File</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem onClick={onSave}>
-            <Save className="mr-2 h-4 w-4" />
-            Save
-          </MenubarItem>
-          <MenubarItem onClick={() => {
-            if (mode === 'guest') {
-              toast.error("Please log in to delete notes");
-              return;
-            }
-            onDelete();
-          }}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </MenubarItem>
-          <MenubarItem onClick={onCopy}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copy Content
-          </MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-
-      <MenubarMenu>
-        <MenubarTrigger className="font-semibold">
-          {note?.priority ? `Priority: ${note.priority}` : 'Set Priority'}
-        </MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem 
-            onClick={() => onPriorityUpdate('high')}
-            className={note?.priority === 'high' ? 'bg-accent' : ''}
-          >
-            <Flag className="mr-2 h-4 w-4" />
-            High Priority
-          </MenubarItem>
-          <MenubarItem 
-            onClick={() => onPriorityUpdate('medium')}
-            className={note?.priority === 'medium' ? 'bg-accent' : ''}
-          >
-            <FlagTriangleRight className="mr-2 h-4 w-4" />
-            Medium Priority
-          </MenubarItem>
-          <MenubarItem 
-            onClick={() => onPriorityUpdate('low')}
-            className={note?.priority === 'low' ? 'bg-accent' : ''}
-          >
-            <FlagTriangleLeft className="mr-2 h-4 w-4" />
-            Low Priority
-          </MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-
-      <MenubarMenu>
-        <MenubarTrigger onClick={onReview} className="font-semibold">
-          <Feather className="mr-2 h-4 w-4" />
-          Mark as Reviewed
-        </MenubarTrigger>
-      </MenubarMenu>
-
-      <MenubarMenu>
-        <MenubarTrigger className="font-semibold">
-          <History className="mr-2 h-4 w-4" />
-          History
-        </MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem onClick={() => toast.info("Note history feature coming soon!")}>
-            View History
-          </MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-    </Menubar>
+    <div className="flex items-center space-x-2 mb-4">
+      <Button variant="outline" size="sm" onClick={onSave}>
+        <Save className="h-4 w-4 mr-2" />
+        Save
+      </Button>
+      <Button variant="outline" size="sm" onClick={onCopy}>
+        <Copy className="h-4 w-4 mr-2" />
+        Copy
+      </Button>
+      <Button variant="outline" size="sm" onClick={onDelete}>
+        <Trash2 className="h-4 w-4 mr-2" />
+        Delete
+      </Button>
+      <PrioritySelector onPriorityUpdate={onPriorityUpdate} />
+      <Button variant="outline" size="sm" onClick={onReview}>
+        <CheckCircle className="h-4 w-4 mr-2" />
+        Mark as Reviewed
+      </Button>
+      <FlashcardGenerator note={note} />
+    </div>
   );
 }
