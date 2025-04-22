@@ -74,6 +74,11 @@ export function FolderItem({
     onDelete(folder.id);
     setShowDeleteDialog(false);
   };
+  
+  const handleCancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteDialog(false);
+  };
 
   const handleStartEditing = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -173,7 +178,14 @@ export function FolderItem({
         </ContextMenuContent>
       </ContextMenu>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog 
+        open={showDeleteDialog} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDeleteDialog(false);
+          }
+        }}
+      >
         <AlertDialogContent onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -183,7 +195,7 @@ export function FolderItem({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={handleCancelDelete}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleDeleteConfirm}

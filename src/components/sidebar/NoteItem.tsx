@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { Note } from '@/types';
@@ -68,17 +67,16 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
 
     if (mode === 'guest') {
       try {
-        // Use updateGuestNote to update title in IndexedDB
         const success = await updateGuestNote(note.id, { title });
         if (success) {
           toast.success("Note renamed successfully");
         } else {
-          setTitle(note.title); // Reset to original title if failed
+          setTitle(note.title);
         }
       } catch (error) {
         console.error('Error renaming guest note:', error);
         toast.error("Failed to rename note");
-        setTitle(note.title); // Reset to original title
+        setTitle(note.title);
       }
       setIsEditing(false);
       return;
@@ -96,15 +94,14 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
       if (error) {
         toast.error("Failed to rename note");
         console.error('Error renaming note:', error);
-        setTitle(note.title); // Reset to original title
+        setTitle(note.title);
       } else {
         toast.success("Note renamed successfully");
-        // The note will be refreshed from the database when the parent component calls refreshFolders
       }
     } catch (error) {
       console.error('Exception when renaming note:', error);
       toast.error("Failed to rename note");
-      setTitle(note.title); // Reset to original title
+      setTitle(note.title);
     }
 
     setIsEditing(false);
@@ -124,6 +121,11 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
   const handleDeleteConfirm = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete(note.id);
+    setShowDeleteDialog(false);
+  };
+
+  const handleCancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setShowDeleteDialog(false);
   };
 
@@ -172,8 +174,15 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
         </ContextMenuContent>
       </ContextMenu>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+      <AlertDialog 
+        open={showDeleteDialog} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDeleteDialog(false);
+          }
+        }}
+      >
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
