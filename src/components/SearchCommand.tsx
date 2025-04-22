@@ -30,28 +30,22 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
   const filteredNotes = React.useMemo(() => {
     if (!searchTerm) return notes;
 
-    // Check if it's a tag search
-    if (searchTerm.startsWith('(') && searchTerm.endsWith(')')) {
-      const tag = searchTerm.slice(1, -1).toLowerCase().trim();
-      return notes.filter(note => 
-        note.tags.some(noteTag => 
-          noteTag.toLowerCase().includes(tag)
-        )
-      );
-    }
-
-    // Regular title search
-    return notes.filter(note =>
-      note.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    return notes.filter(note => 
+      // Search by title
+      note.title.toLowerCase().includes(searchLower) ||
+      // Search by tags
+      note.tags.some(tag => tag.toLowerCase().includes(searchLower))
     );
   }, [notes, searchTerm]);
 
   const getMatchedTags = (note: Note): string[] => {
-    if (!searchTerm.startsWith('(') || !searchTerm.endsWith(')')) return [];
+    if (!searchTerm) return [];
     
-    const searchTag = searchTerm.slice(1, -1).toLowerCase().trim();
+    const searchLower = searchTerm.toLowerCase().trim();
     return note.tags.filter(tag => 
-      tag.toLowerCase().includes(searchTag)
+      tag.toLowerCase().includes(searchLower)
     );
   };
 
@@ -82,13 +76,13 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput 
-          placeholder="Search notes... or use (tag) to search by tag" 
+          placeholder="Search notes by title or tags..." 
           value={searchTerm}
           onValueChange={setSearchTerm}
         />
         <CommandList>
           <CommandEmpty>No notes found.</CommandEmpty>
-          <CommandGroup heading={searchTerm.startsWith('(') ? "Notes with matching tags" : "Notes"}>
+          <CommandGroup heading="Notes">
             {filteredNotes.map((note) => {
               const matchedTags = getMatchedTags(note);
               return (
@@ -101,18 +95,18 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
                   }}
                   className="flex justify-between items-center"
                 >
-                  <span className="flex-1 truncate">{note.title}</span>
-                  <div className="flex items-center gap-2">
-                    {searchTerm.startsWith('(') && matchedTags.map((tag, idx) => (
+                  <div className="flex items-center gap-2 flex-1 truncate">
+                    <span className="truncate">{note.title}</span>
+                    {matchedTags.length > 0 && matchedTags.map((tag, idx) => (
                       <Badge key={idx} variant="purple" className="text-xs">
                         <Tag className="w-3 h-3 mr-1" />
                         {tag}
                       </Badge>
                     ))}
-                    <span className="ml-2 text-xs text-muted-foreground opacity-75 truncate max-w-[30%]">
-                      {note.folder_id === "1" ? "Web Development" : "Frontend Essentials"}
-                    </span>
                   </div>
+                  <span className="ml-2 text-xs text-muted-foreground opacity-75 truncate max-w-[30%]">
+                    {note.folder_id === "1" ? "Web Development" : "Frontend Essentials"}
+                  </span>
                 </CommandItem>
               );
             })}
