@@ -24,7 +24,16 @@ serve(async (req) => {
 
     console.log('Sending request to Google Gemini API')
     
-    // Use the correct model name: gemini-2.0-flash
+    // Make the prompt much more explicit about the output format
+    const prompt = `Create 3 to 5 flashcards from this content. 
+    RETURN A VALID JSON ARRAY OF OBJECTS ONLY, NO MARKDOWN FORMATTING.
+    Each flashcard should have a 'front' field with a question and a 'back' field with the answer.
+    
+    IMPORTANT: Format your response as a PLAIN JSON array with NO explanation, NO markdown, NO backticks (```), NO commentary.
+    Example of valid format: [{"front":"Question 1?","back":"Answer 1"},{"front":"Question 2?","back":"Answer 2"}]
+    
+    Content to convert: ${content}`
+    
     const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
       method: 'POST',
       headers: {
@@ -34,16 +43,10 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           role: 'user',
-          parts: [{
-            text: `Create 5 detailed flashcards from this content. Each flashcard should have a clear question (front) and a comprehensive answer (back). 
-            Format your response as a strict JSON array of objects with 'front' and 'back' properties.
-            Example: [{"front": "What is the main concept?", "back": "Detailed explanation of the concept."}]
-            
-            Content to convert: ${content}`
-          }]
+          parts: [{ text: prompt }]
         }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.2, // Lower temperature for more predictable formatting
           maxOutputTokens: 1000,
         }
       })
@@ -66,31 +69,67 @@ serve(async (req) => {
       throw new Error('Empty response from AI service')
     }
 
-    console.log('Raw response text:', flashcardsText.substring(0, 200) + '...')
+    console.log('Raw response text:', flashcardsText.substring(0, 100) + '...')
 
-    // Parse the response into JSON - with improved error handling for markdown formatting
+    // Enhanced parsing strategy with multiple fallbacks
     let flashcards
     try {
-      // First, try to extract JSON from markdown code blocks if present
-      let jsonContent = flashcardsText
+      // Remove any potential non-JSON content
+      let jsonContent = flashcardsText.trim()
       
-      // If the response contains markdown code blocks with ```json
-      const jsonBlockMatch = flashcardsText.match(/```(?:json)?\s*([\s\S]*?)```/)
-      if (jsonBlockMatch && jsonBlockMatch[1]) {
-        jsonContent = jsonBlockMatch[1].trim()
-        console.log('Extracted JSON content from markdown code block')
-      }
-      
-      // Look for array syntax as a fallback
-      if (!jsonContent.startsWith('[')) {
-        const arrayMatch = flashcardsText.match(/\[\s*{[\s\S]*}\s*\]/)
-        if (arrayMatch) {
-          jsonContent = arrayMatch[0]
-          console.log('Extracted JSON array using regex')
+      // First approach: try parsing the raw response
+      try {
+        flashcards = JSON.parse(jsonContent)
+        console.log('Successfully parsed raw response')
+      } catch (firstError) {
+        console.log('Failed initial parse, trying to extract JSON...')
+        
+        // Second approach: extract JSON from markdown blocks if present
+        const jsonBlockMatch = jsonContent.match(/```(?:json)?\s*([\s\S]*?)```/)
+        if (jsonBlockMatch && jsonBlockMatch[1]) {
+          try {
+            flashcards = JSON.parse(jsonBlockMatch[1].trim())
+            console.log('Successfully parsed from markdown code block')
+          } catch (e) {
+            console.error('Failed to parse content from code block:', e)
+          }
+        }
+        
+        // Third approach: find array pattern in text
+        if (!flashcards) {
+          const arrayMatch = jsonContent.match(/\[\s*\{[\s\S]*\}\s*\]/)
+          if (arrayMatch) {
+            try {
+              flashcards = JSON.parse(arrayMatch[0])
+              console.log('Successfully extracted and parsed array using regex')
+            } catch (e) {
+              console.error('Failed to parse array match:', e)
+            }
+          }
+        }
+        
+        // Fourth approach: try reconstructing a valid array through regex
+        if (!flashcards) {
+          console.log('Attempting to reconstruct JSON from fragments...')
+          // Extract individual card objects with regex
+          const cardMatches = jsonContent.match(/{[^{}]*"front"\s*:[^{}]*"back"\s*:[^{}]*}/g)
+          if (cardMatches && cardMatches.length > 0) {
+            try {
+              // Reconstruct array from individual card objects
+              const reconstructedJSON = '[' + cardMatches.join(',') + ']'
+              flashcards = JSON.parse(reconstructedJSON)
+              console.log('Successfully reconstructed JSON from fragments')
+            } catch (e) {
+              console.error('Failed to parse reconstructed JSON:', e)
+            }
+          }
         }
       }
       
-      flashcards = JSON.parse(jsonContent)
+      // If we still don't have valid flashcards, we've exhausted our options
+      if (!flashcards) {
+        throw new Error('Unable to extract valid JSON from the response')
+      }
       
       // Validate the flashcards structure
       if (!Array.isArray(flashcards)) {
@@ -98,10 +137,21 @@ serve(async (req) => {
         throw new Error('Invalid flashcards format: not an array')
       }
       
-      if (!flashcards.every(card => card && typeof card === 'object' && 'front' in card && 'back' in card)) {
-        console.error('Some flashcards are missing front or back properties:', flashcards)
-        throw new Error('Invalid flashcards format: missing front/back properties')
+      if (flashcards.length === 0) {
+        throw new Error('No flashcards were generated')
       }
+      
+      // Make sure each flashcard has front and back properties
+      flashcards = flashcards.filter(card => 
+        card && typeof card === 'object' && 'front' in card && 'back' in card
+      )
+      
+      if (flashcards.length === 0) {
+        throw new Error('No valid flashcards found in the response')
+      }
+      
+      console.log(`Successfully parsed ${flashcards.length} valid flashcards`)
+      
     } catch (error) {
       console.error('Failed to parse Google AI response:', flashcardsText)
       console.error('Parse error:', error.message)

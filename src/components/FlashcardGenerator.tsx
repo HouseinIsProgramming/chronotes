@@ -39,8 +39,14 @@ export function FlashcardGenerator({ note }: FlashcardGeneratorProps) {
     try {
       toast.info('Generating flashcards... This may take a moment.');
       
+      // Limit content size to prevent overwhelming the API
+      const trimmedContent = note.content.slice(0, 5000);
+      if (note.content.length > 5000) {
+        toast.warning('Note content was trimmed to 5000 characters for processing');
+      }
+      
       const { data, error } = await supabase.functions.invoke('generate-flashcards', {
-        body: { content: note.content }
+        body: { content: trimmedContent }
       });
 
       if (error) {
@@ -64,6 +70,11 @@ export function FlashcardGenerator({ note }: FlashcardGeneratorProps) {
       }
 
       const generatedCards = data.flashcards;
+      
+      if (generatedCards.length === 0) {
+        throw new Error('No flashcards were generated. The AI might need more specific content.');
+      }
+      
       setFlashcards(generatedCards);
       setShowDialog(true);
 
@@ -101,6 +112,7 @@ export function FlashcardGenerator({ note }: FlashcardGeneratorProps) {
         size="sm"
         onClick={generateFlashcards}
         disabled={isGenerating}
+        className="relative"
       >
         <Brain className="h-4 w-4 mr-2" />
         {isGenerating ? 'Generating...' : 'Generate Flashcards'}
