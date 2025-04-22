@@ -7,8 +7,16 @@ import { toast } from 'sonner';
 export const useFlashcards = (mode: string | null, user: any) => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGuestMode, setIsGuestMode] = useState(false);
 
   const fetchFlashcards = async () => {
+    if (mode === 'guest') {
+      setIsGuestMode(true);
+      setFlashcards([]);
+      setIsLoading(false);
+      return;
+    }
+
     if (mode === 'authenticated' && user) {
       try {
         const { data, error } = await supabase
@@ -39,6 +47,7 @@ export const useFlashcards = (mode: string | null, user: any) => {
   return {
     flashcards,
     isLoading,
+    isGuestMode,
     refreshFlashcards: fetchFlashcards
   };
 };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +26,12 @@ export default function Index() {
     fetchUserData
   } = useNotes(mode, user);
 
-  const { flashcards, isLoading: isLoadingFlashcards, refreshFlashcards } = useFlashcards(mode, user);
+  const { 
+    flashcards, 
+    isLoading: isLoadingFlashcards, 
+    isGuestMode, 
+    refreshFlashcards 
+  } = useFlashcards(mode, user);
 
   useEffect(() => {
     if (!mode) {
@@ -80,6 +86,7 @@ export default function Index() {
             flashcards={flashcards}
             onNoteSelect={handleNoteSelect}
             isLoading={isLoadingFlashcards}
+            isGuestMode={isGuestMode}
             onRefresh={refreshFlashcards}
           />
         )}
@@ -87,3 +94,4 @@ export default function Index() {
     </div>
   );
 }
+

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Flashcard } from '@/types';
 import { Search, ArrowRight, Settings, Trash2 } from 'lucide-react';
@@ -13,14 +12,33 @@ interface FlashcardsViewProps {
   flashcards: Flashcard[];
   onNoteSelect: (noteId: string) => void;
   isLoading?: boolean;
+  isGuestMode?: boolean;
   onRefresh: () => void;
 }
 
-export function FlashcardsView({ flashcards, onNoteSelect, isLoading = false, onRefresh }: FlashcardsViewProps) {
+export function FlashcardsView({ 
+  flashcards, 
+  onNoteSelect, 
+  isLoading = false, 
+  isGuestMode = false, 
+  onRefresh 
+}: FlashcardsViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCard, setSelectedCard] = useState<Flashcard | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   
+  if (isGuestMode) {
+    return (
+      <div className="flex-1 overflow-hidden flex flex-col p-6">
+        <div className="flex justify-center items-center h-full text-center">
+          <p className="text-lg text-muted-foreground">
+            This feature is disabled for Guest Users for security reasons, please log in to use AI-features
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const sortedFlashcards = [...flashcards].sort((a, b) => {
     const lastReviewedA = new Date(a.last_reviewed_at).getTime();
     const lastReviewedB = new Date(b.last_reviewed_at).getTime();
