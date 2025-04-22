@@ -30,6 +30,11 @@ export function FlashcardGenerator({ note }: FlashcardGeneratorProps) {
       return;
     }
 
+    if (!note.content || note.content.trim() === '') {
+      toast.warning('Note content is empty. Add content before generating flashcards.');
+      return;
+    }
+
     setIsGenerating(true);
     try {
       toast.info('Generating flashcards... This may take a moment.');

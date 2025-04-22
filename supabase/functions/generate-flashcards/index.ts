@@ -24,7 +24,7 @@ serve(async (req) => {
 
     console.log('Sending request to Google Gemini API')
     
-    // Use the correct model name: gemini-2.0-flash instead of gemini-flash-lite
+    // Use the correct model name: gemini-2.0-flash
     const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
       method: 'POST',
       headers: {
@@ -66,18 +66,41 @@ serve(async (req) => {
       throw new Error('Empty response from AI service')
     }
 
-    // Parse the response into JSON
+    console.log('Raw response text:', flashcardsText.substring(0, 200) + '...')
+
+    // Parse the response into JSON - with improved error handling for markdown formatting
     let flashcards
     try {
-      // Look for JSON array in the response by finding text between [ and ]
-      const jsonMatch = flashcardsText.match(/\[[\s\S]*\]/)
-      const jsonString = jsonMatch ? jsonMatch[0] : flashcardsText
+      // First, try to extract JSON from markdown code blocks if present
+      let jsonContent = flashcardsText
       
-      flashcards = JSON.parse(jsonString)
+      // If the response contains markdown code blocks with ```json
+      const jsonBlockMatch = flashcardsText.match(/```(?:json)?\s*([\s\S]*?)```/)
+      if (jsonBlockMatch && jsonBlockMatch[1]) {
+        jsonContent = jsonBlockMatch[1].trim()
+        console.log('Extracted JSON content from markdown code block')
+      }
+      
+      // Look for array syntax as a fallback
+      if (!jsonContent.startsWith('[')) {
+        const arrayMatch = flashcardsText.match(/\[\s*{[\s\S]*}\s*\]/)
+        if (arrayMatch) {
+          jsonContent = arrayMatch[0]
+          console.log('Extracted JSON array using regex')
+        }
+      }
+      
+      flashcards = JSON.parse(jsonContent)
       
       // Validate the flashcards structure
-      if (!Array.isArray(flashcards) || !flashcards.every(card => card.front && card.back)) {
-        throw new Error('Invalid flashcards format')
+      if (!Array.isArray(flashcards)) {
+        console.error('Parsed result is not an array:', flashcards)
+        throw new Error('Invalid flashcards format: not an array')
+      }
+      
+      if (!flashcards.every(card => card && typeof card === 'object' && 'front' in card && 'back' in card)) {
+        console.error('Some flashcards are missing front or back properties:', flashcards)
+        throw new Error('Invalid flashcards format: missing front/back properties')
       }
     } catch (error) {
       console.error('Failed to parse Google AI response:', flashcardsText)
