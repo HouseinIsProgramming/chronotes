@@ -27,16 +27,40 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
     []
   );
 
+  // Helper function to perform fuzzy matching
+  const fuzzyMatch = (text: string, pattern: string): boolean => {
+    if (!pattern) return true;
+    
+    let patternIdx = 0;
+    let textIdx = 0;
+    const patternLen = pattern.length;
+    const textLen = text.length;
+    
+    // Skip spaces and punctuation in pattern
+    const cleanPattern = pattern.toLowerCase().replace(/[,\s-]+/g, '');
+    const cleanText = text.toLowerCase().replace(/[,\s-]+/g, '');
+    
+    while (patternIdx < cleanPattern.length && textIdx < cleanText.length) {
+      if (cleanPattern[patternIdx] === cleanText[textIdx]) {
+        patternIdx++;
+      }
+      textIdx++;
+    }
+    
+    // If we've gone through the entire pattern, we found a match
+    return patternIdx === cleanPattern.length;
+  };
+
   const filteredNotes = React.useMemo(() => {
     if (!searchTerm) return notes;
 
     const searchLower = searchTerm.toLowerCase().trim();
     
     return notes.filter(note => 
-      // Search by title
-      note.title.toLowerCase().includes(searchLower) ||
-      // Search by tags
-      note.tags.some(tag => tag.toLowerCase().includes(searchLower))
+      // Fuzzy search on title
+      fuzzyMatch(note.title, searchLower) ||
+      // Fuzzy search on tags
+      note.tags.some(tag => fuzzyMatch(tag, searchLower))
     );
   }, [notes, searchTerm]);
 
@@ -44,8 +68,10 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
     if (!searchTerm) return [];
     
     const searchLower = searchTerm.toLowerCase().trim();
+    
+    // Return all tags that match the search term (fuzzy or exact)
     return note.tags.filter(tag => 
-      tag.toLowerCase().includes(searchLower)
+      fuzzyMatch(tag, searchLower)
     );
   };
 
@@ -76,7 +102,7 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput 
-          placeholder="Search notes by title or tags..." 
+          placeholder="Search notes by title or tags (fuzzy search enabled)..."
           value={searchTerm}
           onValueChange={setSearchTerm}
         />
@@ -85,6 +111,10 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
           <CommandGroup heading="Notes">
             {filteredNotes.map((note) => {
               const matchedTags = getMatchedTags(note);
+              
+              // Determine if the match is primarily in the title or tags
+              const matchType = fuzzyMatch(note.title, searchTerm) ? 'title' : 'tag';
+              
               return (
                 <CommandItem
                   key={note.id}
@@ -96,7 +126,9 @@ export function SearchCommand({ notes, onNoteSelect }: SearchCommandProps) {
                   className="flex justify-between items-center"
                 >
                   <div className="flex items-center gap-2 flex-1 truncate">
-                    <span className="truncate">{note.title}</span>
+                    <span className={`truncate ${matchType === 'title' ? 'font-medium' : ''}`}>
+                      {note.title}
+                    </span>
                     {matchedTags.length > 0 && matchedTags.map((tag, idx) => (
                       <Badge key={idx} variant="purple" className="text-xs">
                         <Tag className="w-3 h-3 mr-1" />
