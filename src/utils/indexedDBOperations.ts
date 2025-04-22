@@ -18,6 +18,12 @@ export async function deleteGuestNote(noteId: string): Promise<boolean> {
       request.onerror = () => reject(request.error);
     });
     
+    // Wait for transaction to complete before showing toast
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    
     toast.success("Note deleted successfully");
     return true;
   } catch (error) {
@@ -32,8 +38,8 @@ export async function deleteGuestFolder(folderId: string): Promise<boolean> {
     const db = await initializeDB();
     
     // First delete all notes in the folder
-    const transaction1 = db.transaction(['notes'], 'readwrite');
-    const noteStore = transaction1.objectStore('notes');
+    const notesTransaction = db.transaction(['notes'], 'readwrite');
+    const noteStore = notesTransaction.objectStore('notes');
     const folderIndex = noteStore.index('folderId');
     
     const notesRequest = folderIndex.getAll(folderId);
@@ -42,23 +48,35 @@ export async function deleteGuestFolder(folderId: string): Promise<boolean> {
       notesRequest.onerror = () => reject(notesRequest.error);
     });
     
-    // Delete each note
+    // Delete each note in a separate operation
     for (const note of notes) {
+      const deleteRequest = noteStore.delete(note.id);
       await new Promise<void>((resolve, reject) => {
-        const deleteRequest = noteStore.delete(note.id);
         deleteRequest.onsuccess = () => resolve();
         deleteRequest.onerror = () => reject(deleteRequest.error);
       });
     }
     
-    // Then delete the folder
-    const transaction2 = db.transaction(['folders'], 'readwrite');
-    const folderStore = transaction2.objectStore('folders');
+    // Wait for notes transaction to complete before proceeding
+    await new Promise<void>((resolve, reject) => {
+      notesTransaction.oncomplete = () => resolve();
+      notesTransaction.onerror = () => reject(notesTransaction.error);
+    });
+    
+    // Then delete the folder in a new transaction
+    const folderTransaction = db.transaction(['folders'], 'readwrite');
+    const folderStore = folderTransaction.objectStore('folders');
     
     await new Promise<void>((resolve, reject) => {
       const request = folderStore.delete(folderId);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
+    });
+    
+    // Wait for folder transaction to complete before showing toast
+    await new Promise<void>((resolve, reject) => {
+      folderTransaction.oncomplete = () => resolve();
+      folderTransaction.onerror = () => reject(folderTransaction.error);
     });
     
     toast.success("Folder and its notes deleted successfully");
@@ -75,8 +93,8 @@ export async function clearGuestData(): Promise<boolean> {
     const db = await initializeDB();
     
     // Clear all notes
-    const transaction1 = db.transaction(['notes'], 'readwrite');
-    const noteStore = transaction1.objectStore('notes');
+    const notesTransaction = db.transaction(['notes'], 'readwrite');
+    const noteStore = notesTransaction.objectStore('notes');
     
     await new Promise<void>((resolve, reject) => {
       const request = noteStore.clear();
@@ -84,9 +102,15 @@ export async function clearGuestData(): Promise<boolean> {
       request.onerror = () => reject(request.error);
     });
     
-    // Clear all folders
-    const transaction2 = db.transaction(['folders'], 'readwrite');
-    const folderStore = transaction2.objectStore('folders');
+    // Wait for notes transaction to complete
+    await new Promise<void>((resolve, reject) => {
+      notesTransaction.oncomplete = () => resolve();
+      notesTransaction.onerror = () => reject(notesTransaction.error);
+    });
+    
+    // Clear all folders in a new transaction
+    const foldersTransaction = db.transaction(['folders'], 'readwrite');
+    const folderStore = foldersTransaction.objectStore('folders');
     
     await new Promise<void>((resolve, reject) => {
       const request = folderStore.clear();
@@ -94,7 +118,13 @@ export async function clearGuestData(): Promise<boolean> {
       request.onerror = () => reject(request.error);
     });
     
-    // Create welcome folder and note
+    // Wait for folders transaction to complete
+    await new Promise<void>((resolve, reject) => {
+      foldersTransaction.oncomplete = () => resolve();
+      foldersTransaction.onerror = () => reject(foldersTransaction.error);
+    });
+    
+    // Create welcome folder and note in separate transactions
     const success = await generateGuestSampleData();
     
     if (success) {
@@ -135,7 +165,10 @@ export async function generateGuestSampleData(): Promise<boolean> {
       await new Promise<void>((resolve, reject) => {
         const request = folderStore.add(folderObj);
         request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+          console.error('Error adding folder:', request.error);
+          reject(request.error);
+        };
       });
       
       folderIds.set(folder.name, folderId);
@@ -191,27 +224,32 @@ export async function generateGuestSampleData(): Promise<boolean> {
         
         console.log("Adding note to IndexedDB:", noteData);
         
-        // Create a new transaction for each note
+        // Use a transaction that is forced to complete before continuing
         const noteTransaction = db.transaction(['notes'], 'readwrite');
         const noteStore = noteTransaction.objectStore('notes');
         
-        await new Promise<void>((resolve, reject) => {
-          const request = noteStore.add(noteData);
-          request.onsuccess = () => {
-            console.log("Note added successfully:", request.result);
-            resolve();
-          };
-          request.onerror = (event) => {
-            console.error("Error adding note:", event);
-            reject(request.error);
-          };
-        });
-        
-        // Wait for the transaction to complete
-        await new Promise<void>((resolve, reject) => {
-          noteTransaction.oncomplete = () => resolve();
-          noteTransaction.onerror = () => reject(noteTransaction.error);
-        });
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const request = noteStore.add(noteData);
+            request.onsuccess = () => {
+              console.log("Note added successfully:", request.result);
+              resolve();
+            };
+            request.onerror = (event) => {
+              console.error("Error adding note:", event);
+              reject(request.error);
+            };
+          });
+          
+          // Wait for the transaction to complete before continuing
+          await new Promise<void>((resolve, reject) => {
+            noteTransaction.oncomplete = () => resolve();
+            noteTransaction.onerror = () => reject(noteTransaction.error);
+          });
+        } catch (err) {
+          console.error("Error in note transaction:", err);
+          // Continue with other notes even if one fails
+        }
       }
     }
     
@@ -252,6 +290,12 @@ export async function updateGuestNote(noteId: string, updates: Partial<Note>): P
       const request = noteStore.put(updatedNote);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
+    });
+    
+    // Wait for transaction to complete
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
     });
     
     // Only show success toast for certain operations

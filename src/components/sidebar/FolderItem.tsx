@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -59,8 +60,32 @@ export function FolderItem({
   const folderRenameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setShowDeleteDialog(true);
+  };
+
+  const handleToggle = (e: React.MouseEvent) => {
+    onToggle(folder.id, e);
+  };
+
+  const handleDeleteConfirm = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(folder.id);
+    setShowDeleteDialog(false);
+  };
+
+  const handleStartEditing = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    onStartEditing(folder.id, e);
+  };
+
+  const handleRename = (newName: string) => {
+    onRename(folder.id, newName);
+  };
+
+  const handleCreateNote = (e: React.MouseEvent) => {
+    onCreateNote(e, folder.id);
   };
 
   return (
@@ -69,7 +94,7 @@ export function FolderItem({
         <ContextMenuTrigger>
           <div 
             className="flex items-center p-2 rounded-md hover:bg-sidebar-accent cursor-pointer group relative"
-            onClick={(e) => onToggle(folder.id, e)}
+            onClick={handleToggle}
             onMouseEnter={() => {
               if (folderRenameTimerRef.current) {
                 clearTimeout(folderRenameTimerRef.current);
@@ -99,8 +124,8 @@ export function FolderItem({
             }}
             data-folder-id={folder.id}
           >
-            <span className="mr-1">
-              {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            <span className="mr-1" onClick={(e) => e.stopPropagation()}>
+              {expanded ? <ChevronDown size={16} onClick={handleToggle} /> : <ChevronRight size={16} onClick={handleToggle} />}
             </span>
             <Folder size={16} className="mr-2 text-muted-foreground" />
             
@@ -112,13 +137,13 @@ export function FolderItem({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    onRename(folder.id, (e.target as HTMLInputElement).value);
+                    handleRename((e.target as HTMLInputElement).value);
                   } else if (e.key === 'Escape') {
                     e.preventDefault();
                     onStartEditing('');
                   }
                 }}
-                onBlur={(e) => onRename(folder.id, e.target.value)}
+                onBlur={(e) => handleRename(e.target.value)}
                 autoFocus
               />
             ) : (
@@ -128,7 +153,7 @@ export function FolderItem({
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 ml-auto opacity-0 transition-opacity rename-button absolute right-2"
-                  onClick={(e) => onStartEditing(folder.id, e)}
+                  onClick={handleStartEditing}
                   type="button"
                 >
                   <Pencil className="h-3 w-3" />
@@ -149,7 +174,7 @@ export function FolderItem({
       </ContextMenu>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -158,13 +183,10 @@ export function FolderItem({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                onDelete(folder.id);
-                setShowDeleteDialog(false);
-              }}
+              onClick={handleDeleteConfirm}
             >
               Delete
             </AlertDialogAction>
@@ -187,7 +209,7 @@ export function FolderItem({
             variant="ghost"
             size="sm"
             className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
-            onClick={(e) => onCreateNote(e, folder.id)}
+            onClick={handleCreateNote}
             type="button"
           >
             <Plus className="h-3 w-3 mr-1" />

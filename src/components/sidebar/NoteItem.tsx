@@ -39,11 +39,8 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
   const [title, setTitle] = useState(note.title);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleDeleteClick = () => {
-    if (mode === 'guest') {
-      toast.error("Please log in to delete notes");
-      return;
-    }
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setShowDeleteDialog(true);
   };
 
@@ -124,6 +121,12 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
     }
   };
 
+  const handleDeleteConfirm = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(note.id);
+    setShowDeleteDialog(false);
+  };
+
   return (
     <>
       <ContextMenu>
@@ -179,13 +182,10 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                onDelete(note.id);
-                setShowDeleteDialog(false);
-              }}
+              onClick={handleDeleteConfirm}
             >
               Delete
             </AlertDialogAction>
