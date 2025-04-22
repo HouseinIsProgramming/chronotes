@@ -38,9 +38,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     if (mode === 'guest') {
       setIsDeleting(true);
       try {
-        await clearGuestData();
-        onOpenChange(false);
-        window.location.href = '/';
+        const success = await clearGuestData();
+        if (success) {
+          toast.success("All guest data has been reset");
+          onOpenChange(false);
+          window.location.href = '/';
+        } else {
+          toast.error("Failed to reset guest data");
+        }
       } catch (error) {
         console.error("Error resetting guest data:", error);
         toast.error("An error occurred while resetting data");

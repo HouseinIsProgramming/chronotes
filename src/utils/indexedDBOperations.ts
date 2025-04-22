@@ -1,3 +1,4 @@
+
 import { initializeDB } from '@/lib/indexedDB';
 import { toast } from 'sonner';
 import { Note, Folder } from '@/types';
@@ -94,10 +95,15 @@ export async function clearGuestData(): Promise<boolean> {
     });
     
     // Create welcome folder and note
-    await generateGuestSampleData();
+    const success = await generateGuestSampleData();
     
-    toast.success("All guest data has been reset");
-    return true;
+    if (success) {
+      toast.success("All guest data has been reset");
+      return true;
+    } else {
+      toast.error("Failed to generate welcome data after reset");
+      return false;
+    }
   } catch (error) {
     console.error('Error clearing guest data:', error);
     toast.error("Failed to clear data");
@@ -108,13 +114,12 @@ export async function clearGuestData(): Promise<boolean> {
 export async function generateGuestSampleData(): Promise<boolean> {
   try {
     const db = await initializeDB();
-    const folderStore = db.transaction(['folders'], 'readwrite').objectStore('folders');
-    const noteStore = db.transaction(['notes'], 'readwrite').objectStore('notes');
     const now = new Date().toISOString();
     
     // Create folders and store their IDs
     const folderIds = new Map<string, string>();
     
+    // Create folders one by one
     for (const folder of sampleFolders) {
       const folderId = uuidv4();
       
@@ -124,6 +129,9 @@ export async function generateGuestSampleData(): Promise<boolean> {
         user_id: 'guest'
       };
       
+      const folderTransaction = db.transaction(['folders'], 'readwrite');
+      const folderStore = folderTransaction.objectStore('folders');
+      
       await new Promise<void>((resolve, reject) => {
         const request = folderStore.add(folderObj);
         request.onsuccess = () => resolve();
@@ -131,12 +139,21 @@ export async function generateGuestSampleData(): Promise<boolean> {
       });
       
       folderIds.set(folder.name, folderId);
+      
+      // Wait for the transaction to complete
+      await new Promise<void>((resolve, reject) => {
+        folderTransaction.oncomplete = () => resolve();
+        folderTransaction.onerror = () => reject(folderTransaction.error);
+      });
     }
     
     // Create notes for each folder
     for (const folder of sampleFolders) {
       const folderId = folderIds.get(folder.name);
-      if (!folderId) continue;
+      if (!folderId) {
+        console.error(`Folder ID not found for ${folder.name}`);
+        continue;
+      }
       
       // Get notes that belong to this folder
       for (const noteKey of folder.notes) {
@@ -174,25 +191,34 @@ export async function generateGuestSampleData(): Promise<boolean> {
         
         console.log("Adding note to IndexedDB:", noteData);
         
+        // Create a new transaction for each note
+        const noteTransaction = db.transaction(['notes'], 'readwrite');
+        const noteStore = noteTransaction.objectStore('notes');
+        
         await new Promise<void>((resolve, reject) => {
           const request = noteStore.add(noteData);
           request.onsuccess = () => {
             console.log("Note added successfully:", request.result);
             resolve();
           };
-          request.onerror = () => {
-            console.error("Error adding note:", request.error);
+          request.onerror = (event) => {
+            console.error("Error adding note:", event);
             reject(request.error);
           };
+        });
+        
+        // Wait for the transaction to complete
+        await new Promise<void>((resolve, reject) => {
+          noteTransaction.oncomplete = () => resolve();
+          noteTransaction.onerror = () => reject(noteTransaction.error);
         });
       }
     }
     
-    toast.success("Sample data generated successfully");
+    console.log("Sample data generation completed successfully");
     return true;
   } catch (error) {
     console.error('Error generating sample data:', error);
-    toast.error("Failed to generate sample data");
     return false;
   }
 }
