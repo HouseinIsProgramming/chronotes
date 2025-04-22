@@ -3,6 +3,7 @@ import { initializeDB } from '@/lib/indexedDB';
 import { toast } from 'sonner';
 import { Note, Folder } from '@/types';
 import { welcomeNote } from '@/sampleData/welcome';
+import { sampleFolders, sampleNotes } from '@/sampleData/notes';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function deleteGuestNote(noteId: string): Promise<boolean> {
@@ -108,46 +109,72 @@ export async function clearGuestData(): Promise<boolean> {
 export async function generateGuestSampleData(): Promise<boolean> {
   try {
     const db = await initializeDB();
-    
-    // Create welcome folder
-    const folderId = uuidv4();
-    const transaction1 = db.transaction(['folders'], 'readwrite');
-    const folderStore = transaction1.objectStore('folders');
-    
-    const folder = {
-      id: folderId,
-      name: 'Welcome',
-      user_id: 'guest'
-    };
-    
-    await new Promise<void>((resolve, reject) => {
-      const request = folderStore.add(folder);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-    
-    // Create welcome note
-    const noteId = uuidv4();
-    const transaction2 = db.transaction(['notes'], 'readwrite');
-    const noteStore = transaction2.objectStore('notes');
-    
+    const folderStore = db.transaction(['folders'], 'readwrite').objectStore('folders');
+    const noteStore = db.transaction(['notes'], 'readwrite').objectStore('notes');
     const now = new Date().toISOString();
-    const note = {
-      id: noteId,
-      title: welcomeNote.title,
-      content: welcomeNote.content,
-      tags: welcomeNote.tags,
-      folder_id: folderId,
-      user_id: 'guest',
-      created_at: now,
-      last_reviewed_at: now
-    };
     
-    await new Promise<void>((resolve, reject) => {
-      const request = noteStore.add(note);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    // Create folders and store their IDs
+    const folderIds = new Map<string, string>();
+    
+    for (const folder of sampleFolders) {
+      const folderId = uuidv4();
+      
+      const folderObj = {
+        id: folderId,
+        name: folder.name,
+        user_id: 'guest'
+      };
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = folderStore.add(folderObj);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+      
+      folderIds.set(folder.name, folderId);
+    }
+    
+    // Create notes for each folder
+    for (const folder of sampleFolders) {
+      const folderId = folderIds.get(folder.name);
+      if (!folderId) continue;
+      
+      // Get notes that belong to this folder
+      for (const noteKey of folder.notes) {
+        let noteData;
+        
+        // Special case for welcome note
+        if (noteKey === 'welcome') {
+          noteData = {
+            ...welcomeNote,
+            id: uuidv4(),
+            folder_id: folderId,
+            user_id: 'guest',
+            created_at: now,
+            last_reviewed_at: now
+          };
+        } else {
+          // Get the note from sample notes
+          const note = sampleNotes[noteKey as keyof typeof sampleNotes];
+          noteData = {
+            id: uuidv4(),
+            title: note.title,
+            content: note.content,
+            tags: note.tags,
+            folder_id: folderId,
+            user_id: 'guest',
+            created_at: now,
+            last_reviewed_at: now
+          };
+        }
+        
+        await new Promise<void>((resolve, reject) => {
+          const request = noteStore.add(noteData);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+    }
     
     toast.success("Sample data generated successfully");
     return true;

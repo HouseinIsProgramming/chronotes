@@ -135,13 +135,7 @@ export const useNotes = (mode: string | null, user: any) => {
         
       } catch (error) {
         console.error("Error loading IndexedDB data:", error);
-        
-        const tempFolders: Folder[] = sampleFolders.map(folder => ({
-          id: crypto.randomUUID(),
-          name: folder.name,
-          notes: []
-        }));
-        setFolders(tempFolders);
+        toast.error("Failed to load your notes");
       }
     }
   }, [mode, user]);
