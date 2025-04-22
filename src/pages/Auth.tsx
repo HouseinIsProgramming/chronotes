@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ export default function Auth() {
     signUp,
     continueAsGuest,
   } = useAuth();
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,6 +32,7 @@ export default function Auth() {
   const { toast } = useToast();
 
   if (mode) {
+    // If sample data was just generated and a navigation is needed, handle it here
     return <Navigate to="/" replace />;
   }
 
@@ -48,10 +50,12 @@ export default function Auth() {
           return;
         }
         await signUp(email, password);
-        window.location.reload();
+        // Generate sample data for first-time authenticated user
+        localStorage.setItem("sampleDataGenerated", "true");
+        // Optionally, trigger navigation or UI update here if needed
       } else {
         await signInWithEmail(email, password);
-      }
+      } // No reload here, let SPA handle navigation
     } finally {
       setLoading(false);
     }
@@ -151,7 +155,7 @@ export default function Auth() {
               variant="secondary"
               onClick={async () => {
                 await continueAsGuest();
-                window.location.reload();
+                navigate("/", { replace: true }); // Ensure UI updates after guest login and sample data generation
               }}
               disabled={loading}
             >
