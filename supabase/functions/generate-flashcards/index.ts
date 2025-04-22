@@ -29,7 +29,7 @@ serve(async (req) => {
     RETURN A VALID JSON ARRAY OF OBJECTS ONLY, NO MARKDOWN FORMATTING.
     Each flashcard should have a 'front' field with a question and a 'back' field with the answer.
     
-    IMPORTANT: Format your response as a PLAIN JSON array with NO explanation, NO markdown, NO backticks (```), NO commentary.
+    IMPORTANT: Format your response as a PLAIN JSON array with NO explanation, NO markdown, NO backticks. 
     Example of valid format: [{"front":"Question 1?","back":"Answer 1"},{"front":"Question 2?","back":"Answer 2"}]
     
     Content to convert: ${content}`
