@@ -1,4 +1,3 @@
-
 import { Note } from '@/types';
 import { Copy, Save, Trash2, CheckCircle, ChevronDown, Flag } from 'lucide-react';
 import { FlashcardGenerator } from './FlashcardGenerator';
@@ -29,7 +28,6 @@ export function NoteToolbar({
   onPriorityUpdate,
   onReview
 }: NoteToolbarProps) {
-  // Get priority colors
   const getPriorityColor = (priority: string | null) => {
     switch (priority) {
       case 'high':
@@ -43,9 +41,7 @@ export function NoteToolbar({
     }
   };
 
-  // Priority selection handler
   const handlePrioritySelect = (newPriority: 'high' | 'medium' | 'low') => {
-    // If the same priority is selected, toggle it off (set to null)
     if (note.priority === newPriority) {
       onPriorityUpdate(null);
     } else {
@@ -75,7 +71,7 @@ export function NoteToolbar({
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
-
+          <MenubarSeparator />
           <MenubarMenu>
             <MenubarTrigger className={cn("flex items-center gap-2", getPriorityColor(note.priority))}>
               {note.priority ? (
