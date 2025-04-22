@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +6,7 @@ import { NoteView } from "@/components/NoteView";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { SearchCommand } from "@/components/SearchCommand";
 import { useNotes } from "@/hooks/useNotes";
+import { useFlashcards } from "@/hooks/useFlashcards";
 import { FlashcardsView } from "@/components/FlashcardsView";
 import type { ViewMode } from "@/types";
 
@@ -24,6 +24,8 @@ export default function Index() {
     handleNoteUpdate,
     fetchUserData
   } = useNotes(mode, user);
+
+  const { flashcards, isLoading: isLoadingFlashcards } = useFlashcards(mode, user);
 
   useEffect(() => {
     if (!mode) {
@@ -74,8 +76,9 @@ export default function Index() {
           />
         ) : (
           <FlashcardsView 
-            notes={folders.flatMap(folder => folder.notes)}
+            flashcards={flashcards}
             onNoteSelect={handleNoteSelect}
+            isLoading={isLoadingFlashcards}
           />
         )}
       </div>

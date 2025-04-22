@@ -24,3 +24,13 @@ export interface KanbanColumn {
 }
 
 export type ViewMode = 'notes' | 'review' | 'flashcards';
+
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  note_id: string;
+  created_at: string;
+  last_reviewed_at: string;
+  review_count: number;
+}
