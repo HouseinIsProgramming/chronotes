@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FolderPlus } from 'lucide-react';
 import { Folder } from '@/types';
@@ -345,7 +344,7 @@ export function Sidebar({
       )}
 
       <Separator className="mb-2" />
-      <UserSection onSettingsOpen={setSettingsOpen} />
+      <UserSection onSettingsOpen={() => setSettingsOpen(true)} />
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
