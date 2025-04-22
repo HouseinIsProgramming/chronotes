@@ -1,12 +1,10 @@
-
-import { useEffect, useRef } from 'react';
-import { Note } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { useEffect, useRef } from "react";
+import { Note } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import "katex/dist/katex.min.css"; // latex import
-
 
 interface NoteEditorProps {
   note: Note;
@@ -26,15 +24,15 @@ export function NoteEditor({ note, onContentChange }: NoteEditorProps) {
 
   useEffect(() => {
     if (!note || !editorRef.current) return;
-    
+
     cleanupEditor();
-    
+
     const element = editorRef.current;
-    
+
     // Create the Crepe editor
     crepeRef.current = new Crepe({
       root: element,
-      defaultValue: note.content || '',
+      defaultValue: note.content || "",
       features: {
         [Crepe.Feature.Latex]: true, // enable LaTeX support
       },
@@ -43,7 +41,7 @@ export function NoteEditor({ note, onContentChange }: NoteEditorProps) {
     // Set up the change tracking after the editor is created
     crepeRef.current.create().then(() => {
       console.log("Editor created for note:", note.id);
-      
+
       if (crepeRef.current) {
         // Setup a MutationObserver to track content changes
         const editorContainer = element;
@@ -59,14 +57,14 @@ export function NoteEditor({ note, onContentChange }: NoteEditorProps) {
             }
           }
         });
-        
+
         // Observe changes to the editor's DOM
         observer.observe(editorContainer, {
           childList: true,
           subtree: true,
-          characterData: true
+          characterData: true,
         });
-        
+
         // Add cleanup for the observer
         return () => {
           observer.disconnect();
@@ -80,7 +78,10 @@ export function NoteEditor({ note, onContentChange }: NoteEditorProps) {
   return (
     <Card className="h-auto bg-[#F1F0FB] shadow-sm">
       <CardContent className="p-6 h-full">
-        <div ref={editorRef} className="prose prose-sm md:prose-base max-w-none focus:outline-none">
+        <div
+          ref={editorRef}
+          className="prose prose-sm md:prose-base max-w-none focus:outline-none"
+        >
           {/* Milkdown editor will render here */}
         </div>
       </CardContent>
