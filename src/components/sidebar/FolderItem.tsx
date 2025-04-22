@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -69,9 +68,16 @@ export function FolderItem({
     onToggle(folder.id, e);
   };
 
-  const handleDeleteConfirm = (e: React.MouseEvent) => {
+  const handleDeleteConfirm = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    onDelete(folder.id);
+    
+    if (mode === 'guest') {
+      await onDelete(folder.id);
+      window.location.reload();
+    } else {
+      await onDelete(folder.id);
+    }
+    
     setShowDeleteDialog(false);
   };
   

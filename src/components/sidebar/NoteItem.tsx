@@ -118,9 +118,16 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
     }
   };
 
-  const handleDeleteConfirm = (e: React.MouseEvent) => {
+  const handleDeleteConfirm = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    onDelete(note.id);
+    
+    if (mode === 'guest') {
+      await onDelete(note.id);
+      window.location.reload();
+    } else {
+      await onDelete(note.id);
+    }
+    
     setShowDeleteDialog(false);
   };
 
