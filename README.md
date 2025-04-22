@@ -1,73 +1,69 @@
-# Welcome to your Lovable project
 
-## Project info
+# Chronotes 📚
 
-**URL**: https://lovable.dev/projects/7b7bbf1c-8e32-47b4-999a-4884eacff44f
+**Your Modern Note-Taking Experience**
 
-## How can I edit this code?
+Chronotes is a modern, feature-rich note-taking application built to help you organize your thoughts, knowledge, and ideas seamlessly.
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 🚀 Key Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7b7bbf1c-8e32-47b4-999a-4884eacff44f) and start prompting.
+- **Markdown Support**: Write beautiful notes using Markdown and LaTeX for mathematical formulas. *(Check the "Writing Guide" after generating sample data in settings.)*
+- **Smart Organization**: Group your notes effectively with intuitive folder structures.
+- **Tags**: Quickly categorize and locate notes using custom tags.
+- **Review System**: Regularly review your notes to reinforce your learning. *(Click "Review" to see when your notes were last reviewed.)*
+- **Kanban Board**: Visually manage your tasks and notes with a Kanban-style view.
+- **AI-Powered Flashcards**: Automatically generate flashcards from your notes using AI to streamline your studying.
+- **Flashcard View**: Conveniently access and review your flashcards.
+- **Responsive and Customizable UI**: Supports both light and dark themes, customizable through the settings.
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 📝 Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Follow these steps to quickly dive into Chronotes:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Creating Notes**: Click the **"+"** button in the sidebar.
+2. **Organizing Notes**: Use folders to keep your notes structured.
+3. **Finding Notes**: Quickly locate notes using the search bar at the top or via tags.
+4. **Review Mode**: Enable review mode to reinforce your learning.
+5. **AI Flashcards**: Click **"Generate Flashcards"** within notes to create AI-generated flashcards.
+6. **Flashcards**: Click the **"Flashcards"** button to review your cards.
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🎨 Pro Tips
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- Quickly save notes with `Ctrl/Cmd + S`.
+- Instantly search notes using `Ctrl/Cmd + K`.
+- Click on tags within notes to add or edit them.
+- Toggle between light and dark themes in the settings menu.
+- Use the Kanban board for visual task management.
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## 📼 Demo
 
-**Edit a file directly in GitHub**
+If you'd like to explore the application with pre-populated content:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- Click **"Settings"** (bottom left corner).
+- Click **"Generate Sample Data"** to populate your workspace with demo notes.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## ⚠️ Note
 
-## What technologies are used for this project?
+Chronotes is currently an MVP (Minimum Viable Product). Some features may still be in development or may have bugs.
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🤝 Need Help?
 
-## How can I deploy this project?
+If you have questions, feedback, or need assistance:
 
-Simply open [Lovable](https://lovable.dev/projects/7b7bbf1c-8e32-47b4-999a-4884eacff44f) and click on Share -> Publish.
+📧 **Contact:** [housein.aboshaar@gmail.com](mailto:housein.aboshaar@gmail.com)
 
-## Can I connect a custom domain to my Lovable project?
+Happy note-taking! ✨
 
-Yes, you can!
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
