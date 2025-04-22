@@ -71,12 +71,8 @@ export function FolderItem({
   const handleDeleteConfirm = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (mode === 'guest') {
-      await onDelete(folder.id);
-      window.location.reload();
-    } else {
-      await onDelete(folder.id);
-    }
+    await onDelete(folder.id);
+    window.location.reload();
     
     setShowDeleteDialog(false);
   };

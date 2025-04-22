@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { Note } from '@/types';
 import { cn } from '@/lib/utils';
@@ -121,12 +121,8 @@ export function NoteItem({ note, isActive, onSelect, onDelete }: NoteItemProps) 
   const handleDeleteConfirm = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (mode === 'guest') {
-      await onDelete(note.id);
-      window.location.reload();
-    } else {
-      await onDelete(note.id);
-    }
+    await onDelete(note.id);
+    window.location.reload();
     
     setShowDeleteDialog(false);
   };
