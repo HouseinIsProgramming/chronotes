@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -122,9 +123,15 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     if (mode === 'guest') {
       setIsGenerating(true);
       try {
-        await generateGuestSampleData();
-        onOpenChange(false);
-        window.location.href = '/';
+        console.log("Generating guest sample data...");
+        const success = await generateGuestSampleData();
+        if (success) {
+          toast.success("Sample data generated successfully");
+          onOpenChange(false);
+          window.location.href = '/';
+        } else {
+          toast.error("Failed to generate sample data");
+        }
       } catch (error) {
         console.error("Error generating guest sample data:", error);
         toast.error("An error occurred while generating sample data");

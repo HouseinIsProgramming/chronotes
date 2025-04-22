@@ -1,4 +1,3 @@
-
 import { initializeDB } from '@/lib/indexedDB';
 import { toast } from 'sonner';
 import { Note, Folder } from '@/types';
@@ -156,11 +155,16 @@ export async function generateGuestSampleData(): Promise<boolean> {
         } else {
           // Get the note from sample notes
           const note = sampleNotes[noteKey as keyof typeof sampleNotes];
+          if (!note) {
+            console.error(`Note with key ${noteKey} not found in sampleNotes`);
+            continue;
+          }
+          
           noteData = {
             id: uuidv4(),
             title: note.title,
             content: note.content,
-            tags: note.tags,
+            tags: note.tags || [],
             folder_id: folderId,
             user_id: 'guest',
             created_at: now,
@@ -168,10 +172,18 @@ export async function generateGuestSampleData(): Promise<boolean> {
           };
         }
         
+        console.log("Adding note to IndexedDB:", noteData);
+        
         await new Promise<void>((resolve, reject) => {
           const request = noteStore.add(noteData);
-          request.onsuccess = () => resolve();
-          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            console.log("Note added successfully:", request.result);
+            resolve();
+          };
+          request.onerror = () => {
+            console.error("Error adding note:", request.error);
+            reject(request.error);
+          };
         });
       }
     }
