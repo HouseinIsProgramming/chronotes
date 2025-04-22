@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FolderPlus } from 'lucide-react';
-import { Folder } from '@/types';
+import { Folder, ViewMode } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,8 +18,8 @@ interface SidebarProps {
   folders: Folder[];
   activeNoteId: string | null;
   onNoteSelect: (noteId: string) => void;
-  viewMode: 'notes' | 'review' | 'flashcards';
-  onViewModeChange: (mode: 'notes' | 'review' | 'flashcards') => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
   refreshFolders: () => void;
 }
 
@@ -305,43 +305,42 @@ export function Sidebar({
         </div>
       </div>
 
-      {viewMode === 'notes' && (
-        <div className="flex-1 overflow-auto p-2">
-          <FlashcardsMenuItem
-            isActive={viewMode === 'flashcards'}
-            onClick={() => onViewModeChange('flashcards')}
-          />
-          <div className="flex items-center justify-between mt-4 mb-2">
-            <span className="text-sm font-medium">Folders</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={handleCreateFolder}
-              type="button"
-            >
-              <FolderPlus className="h-4 w-4" />
-            </Button>
-          </div>
+      <div className="flex-1 overflow-auto p-2">
+        <FlashcardsMenuItem
+          isActive={viewMode === 'flashcards'}
+          onClick={() => onViewModeChange('flashcards')}
+        />
 
-          {folders.map(folder => (
-            <FolderItem
-              key={folder.id}
-              folder={folder}
-              expanded={expandedFolders[folder.id]}
-              onToggle={toggleFolder}
-              onNoteSelect={onNoteSelect}
-              activeNoteId={activeNoteId}
-              onCreateNote={handleCreateNote}
-              editingFolderId={editingFolderId}
-              onStartEditing={setEditingFolderId}
-              onRename={handleRenameFolder}
-              onDelete={handleDeleteFolder}
-              onDeleteNote={handleDeleteNote}
-            />
-          ))}
+        <div className="flex items-center justify-between mt-4 mb-2">
+          <span className="text-sm font-medium">Folders</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={handleCreateFolder}
+            type="button"
+          >
+            <FolderPlus className="h-4 w-4" />
+          </Button>
         </div>
-      )}
+
+        {folders.map(folder => (
+          <FolderItem
+            key={folder.id}
+            folder={folder}
+            expanded={expandedFolders[folder.id]}
+            onToggle={toggleFolder}
+            onNoteSelect={onNoteSelect}
+            activeNoteId={activeNoteId}
+            onCreateNote={handleCreateNote}
+            editingFolderId={editingFolderId}
+            onStartEditing={setEditingFolderId}
+            onRename={handleRenameFolder}
+            onDelete={handleDeleteFolder}
+            onDeleteNote={handleDeleteNote}
+          />
+        ))}
+      </div>
 
       <Separator className="mb-2" />
       <UserSection onSettingsOpen={() => setSettingsOpen(true)} />

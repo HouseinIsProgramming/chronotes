@@ -1,4 +1,3 @@
-
 export interface Note {
   id: string;
   title: string;
@@ -23,3 +22,5 @@ export interface KanbanColumn {
   priority: ReviewPriority;
   notes: Note[];
 }
+
+export type ViewMode = 'notes' | 'review' | 'flashcards';

@@ -7,11 +7,13 @@ import { NoteView } from "@/components/NoteView";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { SearchCommand } from "@/components/SearchCommand";
 import { useNotes } from "@/hooks/useNotes";
+import { FlashcardsView } from "@/components/FlashcardsView";
+import type { ViewMode } from "@/types";
 
 export default function Index() {
   const { mode, user } = useAuth();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<'notes' | 'review' | 'flashcards'>('notes');
+  const [viewMode, setViewMode] = useState<ViewMode>('notes');
 
   const {
     folders,
@@ -31,9 +33,11 @@ export default function Index() {
 
   const handleNoteSelect = (noteId: string) => {
     setActiveNoteId(noteId);
+    // When selecting a note, always go back to notes view
+    setViewMode('notes');
   };
 
-  const handleViewModeChange = (newMode: 'notes' | 'review' | 'flashcards') => {
+  const handleViewModeChange = (newMode: ViewMode) => {
     setViewMode(newMode);
   };
 
@@ -69,10 +73,10 @@ export default function Index() {
             onViewModeChange={handleViewModeChange}
           />
         ) : (
-          <div className="flex-1 p-4">
-            <h2 className="text-2xl font-bold mb-4">Flashcards</h2>
-            <p className="text-muted-foreground">Flashcards view coming soon...</p>
-          </div>
+          <FlashcardsView 
+            notes={folders.flatMap(folder => folder.notes)}
+            onNoteSelect={handleNoteSelect}
+          />
         )}
       </div>
     </div>
