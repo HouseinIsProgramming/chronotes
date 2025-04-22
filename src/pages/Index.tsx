@@ -25,7 +25,7 @@ export default function Index() {
     fetchUserData
   } = useNotes(mode, user);
 
-  const { flashcards, isLoading: isLoadingFlashcards } = useFlashcards(mode, user);
+  const { flashcards, isLoading: isLoadingFlashcards, refreshFlashcards } = useFlashcards(mode, user);
 
   useEffect(() => {
     if (!mode) {
@@ -52,6 +52,7 @@ export default function Index() {
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         refreshFolders={fetchUserData}
+        refreshFlashcards={refreshFlashcards}
       />
       
       <div className="flex-1 overflow-hidden flex flex-col">

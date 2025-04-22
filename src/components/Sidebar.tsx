@@ -21,6 +21,7 @@ interface SidebarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   refreshFolders: () => void;
+  refreshFlashcards: () => void;
 }
 
 export function Sidebar({ 
@@ -29,7 +30,8 @@ export function Sidebar({
   onNoteSelect, 
   viewMode,
   onViewModeChange,
-  refreshFolders 
+  refreshFolders,
+  refreshFlashcards 
 }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>(() => {
     const expanded: Record<string, boolean> = {};
@@ -309,6 +311,7 @@ export function Sidebar({
         <FlashcardsMenuItem
           isActive={viewMode === 'flashcards'}
           onClick={() => onViewModeChange('flashcards')}
+          onRefresh={refreshFlashcards}
         />
 
         <div className="flex items-center justify-between mt-4 mb-2">

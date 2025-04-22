@@ -6,16 +6,23 @@ import { cn } from "@/lib/utils";
 interface FlashcardsMenuItemProps {
   isActive: boolean;
   onClick: () => void;
+  onRefresh: () => void;
 }
 
 export const FlashcardsMenuItem = ({
   isActive,
   onClick,
+  onRefresh,
 }: FlashcardsMenuItemProps) => {
+  const handleClick = () => {
+    onClick();
+    onRefresh();
+  };
+
   return (
     <Button
       variant="ghost"
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         "w-full justify-start gap-2 h-9 px-2 bg-[#FEF7CD] border border-[#E5DFB9] hover:bg-[#F5EDB8]",
         isActive && "bg-[#F5EDB8] text-[#222]"
@@ -26,3 +33,4 @@ export const FlashcardsMenuItem = ({
     </Button>
   );
 };
+

@@ -42,3 +42,4 @@ export const useFlashcards = (mode: string | null, user: any) => {
     refreshFlashcards: fetchFlashcards
   };
 };
+
