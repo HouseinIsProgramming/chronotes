@@ -13,6 +13,7 @@ import { UserSection } from './sidebar/UserSection';
 import { FlashcardsMenuItem } from './sidebar/FlashcardsMenuItem';
 import { getUniqueNameInList } from '@/utils/nameUtils';
 import { createGuestFolder, createGuestNote, renameGuestFolder } from '@/utils/guestOperations';
+import { deleteGuestFolder, deleteGuestNote } from '@/utils/indexedDBOperations';
 
 interface SidebarProps {
   folders: Folder[];
@@ -207,7 +208,15 @@ export function Sidebar({
 
   const handleDeleteFolder = async (folderId: string) => {
     if (mode === 'guest') {
-      toast.error("Please log in to delete folders");
+      try {
+        const success = await deleteGuestFolder(folderId);
+        if (success) {
+          refreshFolders();
+        }
+      } catch (error) {
+        console.error('Error deleting guest folder:', error);
+        toast.error("Failed to delete folder");
+      }
       return;
     }
 
@@ -242,7 +251,18 @@ export function Sidebar({
 
   const handleDeleteNote = async (noteId: string) => {
     if (mode === 'guest') {
-      toast.error("Please log in to delete notes");
+      try {
+        const success = await deleteGuestNote(noteId);
+        if (success) {
+          if (activeNoteId === noteId) {
+            onNoteSelect('');
+          }
+          refreshFolders();
+        }
+      } catch (error) {
+        console.error('Error deleting guest note:', error);
+        toast.error("Failed to delete note");
+      }
       return;
     }
 

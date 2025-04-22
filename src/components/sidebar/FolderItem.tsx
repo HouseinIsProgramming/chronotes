@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Folder, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -61,10 +60,6 @@ export function FolderItem({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleDeleteClick = () => {
-    if (mode === 'guest') {
-      toast.error("Please log in to delete folders");
-      return;
-    }
     setShowDeleteDialog(true);
   };
 
