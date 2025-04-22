@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FolderPlus } from 'lucide-react';
 import { Folder } from '@/types';
@@ -10,16 +11,16 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { FolderItem } from './sidebar/FolderItem';
 import { UserSection } from './sidebar/UserSection';
+import { FlashcardsMenuItem } from './sidebar/FlashcardsMenuItem';
 import { getUniqueNameInList } from '@/utils/nameUtils';
 import { createGuestFolder, createGuestNote, renameGuestFolder } from '@/utils/guestOperations';
-import { initializeDB } from '@/lib/indexedDB';
 
 interface SidebarProps {
   folders: Folder[];
   activeNoteId: string | null;
   onNoteSelect: (noteId: string) => void;
-  viewMode: 'notes' | 'review';
-  onViewModeChange: (mode: 'notes' | 'review') => void;
+  viewMode: 'notes' | 'review' | 'flashcards';
+  onViewModeChange: (mode: 'notes' | 'review' | 'flashcards') => void;
   refreshFolders: () => void;
 }
 
@@ -27,8 +28,8 @@ export function Sidebar({
   folders, 
   activeNoteId, 
   onNoteSelect, 
-  viewMode, 
-  onViewModeChange, 
+  viewMode,
+  onViewModeChange,
   refreshFolders 
 }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>(() => {
@@ -288,7 +289,7 @@ export function Sidebar({
             variant="ghost"
             className={cn("flex-1 h-9 rounded-md font-normal", 
               viewMode === 'notes' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
-            onClick={(e) => onViewModeChange('notes')}
+            onClick={() => onViewModeChange('notes')}
             type="button"
           >
             Notes
@@ -297,7 +298,7 @@ export function Sidebar({
             variant="ghost"
             className={cn("flex-1 h-9 rounded-md font-normal", 
               viewMode === 'review' ? "bg-white shadow-sm text-primary" : "text-muted-foreground")}
-            onClick={(e) => onViewModeChange('review')}
+            onClick={() => onViewModeChange('review')}
             type="button"
           >
             Review
@@ -307,7 +308,11 @@ export function Sidebar({
 
       {viewMode === 'notes' && (
         <div className="flex-1 overflow-auto p-2">
-          <div className="flex items-center justify-between mb-2">
+          <FlashcardsMenuItem
+            isActive={viewMode === 'flashcards'}
+            onClick={() => onViewModeChange('flashcards')}
+          />
+          <div className="flex items-center justify-between mt-4 mb-2">
             <span className="text-sm font-medium">Folders</span>
             <Button
               variant="ghost"
@@ -340,9 +345,7 @@ export function Sidebar({
       )}
 
       <Separator className="mb-2" />
-      
-      <UserSection onSettingsOpen={(e) => setSettingsOpen(true)} />
-
+      <UserSection onSettingsOpen={setSettingsOpen} />
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );

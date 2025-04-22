@@ -11,7 +11,7 @@ import { useNotes } from "@/hooks/useNotes";
 export default function Index() {
   const { mode, user } = useAuth();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<'notes' | 'review'>('notes');
+  const [viewMode, setViewMode] = useState<'notes' | 'review' | 'flashcards'>('notes');
 
   const {
     folders,
@@ -33,7 +33,7 @@ export default function Index() {
     setActiveNoteId(noteId);
   };
 
-  const handleViewModeChange = (newMode: 'notes' | 'review') => {
+  const handleViewModeChange = (newMode: 'notes' | 'review' | 'flashcards') => {
     setViewMode(newMode);
   };
 
@@ -61,13 +61,18 @@ export default function Index() {
             onReview={handleReview}
             onUpdateNote={handleNoteUpdate}
           />
-        ) : (
+        ) : viewMode === 'review' ? (
           <KanbanBoard 
             notes={folders.flatMap(folder => folder.notes)} 
             onNoteSelect={handleNoteSelect}
             onReview={handleReview}
             onViewModeChange={handleViewModeChange}
           />
+        ) : (
+          <div className="flex-1 p-4">
+            <h2 className="text-2xl font-bold mb-4">Flashcards</h2>
+            <p className="text-muted-foreground">Flashcards view coming soon...</p>
+          </div>
         )}
       </div>
     </div>
