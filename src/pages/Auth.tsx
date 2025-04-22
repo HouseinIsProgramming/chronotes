@@ -48,6 +48,7 @@ export default function Auth() {
           return;
         }
         await signUp(email, password);
+        window.location.reload();
       } else {
         await signInWithEmail(email, password);
       }
@@ -148,7 +149,10 @@ export default function Auth() {
 
             <Button
               variant="secondary"
-              onClick={continueAsGuest}
+              onClick={async () => {
+                await continueAsGuest();
+                window.location.reload();
+              }}
               disabled={loading}
             >
               Continue as Guest
