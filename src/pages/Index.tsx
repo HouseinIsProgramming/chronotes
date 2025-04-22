@@ -80,6 +80,7 @@ export default function Index() {
             flashcards={flashcards}
             onNoteSelect={handleNoteSelect}
             isLoading={isLoadingFlashcards}
+            onRefresh={refreshFlashcards}
           />
         )}
       </div>

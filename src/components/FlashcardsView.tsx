@@ -1,19 +1,22 @@
 
 import { useState } from 'react';
 import { Flashcard } from '@/types';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, Settings, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface FlashcardsViewProps {
   flashcards: Flashcard[];
   onNoteSelect: (noteId: string) => void;
   isLoading?: boolean;
+  onRefresh: () => void;
 }
 
-export function FlashcardsView({ flashcards, onNoteSelect, isLoading = false }: FlashcardsViewProps) {
+export function FlashcardsView({ flashcards, onNoteSelect, isLoading = false, onRefresh }: FlashcardsViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCard, setSelectedCard] = useState<Flashcard | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -38,6 +41,24 @@ export function FlashcardsView({ flashcards, onNoteSelect, isLoading = false }: 
   const handleCardClick = (card: Flashcard) => {
     setSelectedCard(card);
     setIsFlipped(false);
+  };
+
+  const handleDeleteFlashcard = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('flashcards')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Flashcard deleted successfully');
+      setSelectedCard(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting flashcard:', error);
+      toast.error('Failed to delete flashcard');
+    }
   };
 
   if (isLoading) {
@@ -74,7 +95,7 @@ export function FlashcardsView({ flashcards, onNoteSelect, isLoading = false }: 
           </div>
           
           <div 
-            className="flex-1 flex items-center justify-center cursor-pointer"
+            className="flex-1 flex items-center justify-center cursor-pointer relative"
             onClick={() => setIsFlipped(!isFlipped)}
           >
             <div 
@@ -88,6 +109,17 @@ export function FlashcardsView({ flashcards, onNoteSelect, isLoading = false }: 
                 {isFlipped ? selectedCard.back : selectedCard.front}
               </div>
             </div>
+            <Button
+              variant="destructive"
+              size="icon"
+              className="absolute bottom-4 right-4"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteFlashcard(selectedCard.id);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
           
           <div className="text-center mt-4 text-sm text-muted-foreground">
