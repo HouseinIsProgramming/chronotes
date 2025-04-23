@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +13,7 @@ import type { ViewMode } from "@/types";
 export default function Index() {
   const { mode, user } = useAuth();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<ViewMode>('notes');
+  const [viewMode, setViewMode] = useState<ViewMode>("notes");
 
   const {
     folders,
@@ -23,26 +22,26 @@ export default function Index() {
     setActiveNoteId,
     handleReview,
     handleNoteUpdate,
-    fetchUserData
+    fetchUserData,
   } = useNotes(mode, user);
 
-  const { 
-    flashcards, 
-    isLoading: isLoadingFlashcards, 
-    isGuestMode, 
-    refreshFlashcards 
+  const {
+    flashcards,
+    isLoading: isLoadingFlashcards,
+    isGuestMode,
+    refreshFlashcards,
   } = useFlashcards(mode, user);
 
   useEffect(() => {
     if (!mode) {
-      navigate('/auth');
+      navigate("/auth");
     }
   }, [mode, navigate]);
 
   const handleNoteSelect = (noteId: string) => {
     setActiveNoteId(noteId);
     // When selecting a note, always go back to notes view
-    setViewMode('notes');
+    setViewMode("notes");
   };
 
   const handleViewModeChange = (newMode: ViewMode) => {
@@ -51,7 +50,7 @@ export default function Index() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar 
+      <Sidebar
         folders={folders}
         activeNoteId={activeNoteId}
         onNoteSelect={handleNoteSelect}
@@ -60,29 +59,33 @@ export default function Index() {
         refreshFolders={fetchUserData}
         refreshFlashcards={refreshFlashcards}
       />
-      
+
       <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="border-b p-4 flex justify-end">
-          <SearchCommand 
-            notes={folders.flatMap(folder => folder.notes)} 
+        <div
+          id="topbar"
+          className="border-b h-16 p-4 flex justify-between items-center"
+        >
+          <h1 className="text-xl font-bold font-serif">Chronotes</h1>
+          <SearchCommand
+            notes={folders.flatMap((folder) => folder.notes)}
             onNoteSelect={handleNoteSelect}
           />
         </div>
-        {viewMode === 'notes' ? (
-          <NoteView 
-            note={activeNote} 
+        {viewMode === "notes" ? (
+          <NoteView
+            note={activeNote}
             onReview={handleReview}
             onUpdateNote={handleNoteUpdate}
           />
-        ) : viewMode === 'review' ? (
-          <KanbanBoard 
-            notes={folders.flatMap(folder => folder.notes)} 
+        ) : viewMode === "review" ? (
+          <KanbanBoard
+            notes={folders.flatMap((folder) => folder.notes)}
             onNoteSelect={handleNoteSelect}
             onReview={handleReview}
             onViewModeChange={handleViewModeChange}
           />
         ) : (
-          <FlashcardsView 
+          <FlashcardsView
             flashcards={flashcards}
             onNoteSelect={handleNoteSelect}
             isLoading={isLoadingFlashcards}
@@ -94,4 +97,3 @@ export default function Index() {
     </div>
   );
 }
-
