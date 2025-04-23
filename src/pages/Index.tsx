@@ -8,12 +8,16 @@ import { SearchCommand } from "@/components/SearchCommand";
 import { useNotes } from "@/hooks/useNotes";
 import { useFlashcards } from "@/hooks/useFlashcards";
 import { FlashcardsView } from "@/components/FlashcardsView";
+import { MobileOverlay } from "@/components/MobileOverlay";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { ViewMode } from "@/types";
 
 export default function Index() {
   const { mode, user } = useAuth();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("notes");
+  const isMobile = useIsMobile();
+  const [showMobileOverlay, setShowMobileOverlay] = useState(true);
 
   const {
     folders,
@@ -50,6 +54,9 @@ export default function Index() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {isMobile && showMobileOverlay && (
+        <MobileOverlay onClose={() => setShowMobileOverlay(false)} />
+      )}
       <Sidebar
         folders={folders}
         activeNoteId={activeNoteId}
